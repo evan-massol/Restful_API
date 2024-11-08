@@ -2,14 +2,15 @@
   "name": "tp1",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/src/ts/index.js",
+  "main": "dist/src/ts/app.js",
   "type": "module",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/src/ts/script.js",
+    "build": "tsc && npm run copy-database",
+    "copy-database": "cp -r src/database dist/src/",
+    "start": "node dist/src/ts/app.js",
     "test": "jest"
   },
   "author": "Evan MASSOL",
