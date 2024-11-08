@@ -8,8 +8,7 @@
     "test": "tests"
   },
   "scripts": {
-    "build": "tsc && npm run copy-database",
-    "copy-database": "cp -r src/database dist/src/",
+    "build": "tsc && mkdir -p dist/src/database",
     "start": "node dist/src/ts/app.js",
     "test": "jest"
   },

@@ -1,8 +1,9 @@
 import express from 'express';
-import { initDB } from './database.js';
+import { initDB } from './database/database.js';
 import { setupRoutes } from './routes.js';
 
 const app = express();
+app.use(express.json()); //Middleware to only parse JSON
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
