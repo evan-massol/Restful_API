@@ -1,16 +1,16 @@
 import { Request, Response, Application } from 'express';
-import { BooksDao } from './database/DAO/bookDao.js';
-import { AuthorDao } from './database/DAO/authorDao.js';
-import { GenreDao } from './database/DAO/genreDAO.js';
-import { UserDao } from './database/DAO/userDAO.js';
+import { BooksController } from './database/controllers/book.js';
+import { AuthorController } from './database/controllers/author.js';
+import { GenreController } from './database/controllers/genre.js';
+import { UserController } from './database/controllers/user.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 export function setupRoutes(app: Application) {
-    const booksDao = new BooksDao(app.locals.db);
-    const authorDao = new AuthorDao(app.locals.db);
-    const genreDao = new GenreDao(app.locals.db);
-    const userDao = new UserDao(app.locals.db);
+    const booksController = new BooksController(app.locals.db);
+    const authorController = new AuthorController(app.locals.db);
+    const genreController = new GenreController(app.locals.db);
+    const userController = new UserController(app.locals.db);
 
     // Base route
     app.get('/', async (req: Request, res: Response) => {
@@ -20,7 +20,7 @@ export function setupRoutes(app: Application) {
     // Books routes
     app.get('/books', async (req: Request, res: Response) => {
         try {
-            const books = await booksDao.getAllBooks();
+            const books = await booksController.getAllBooks();
             books ? res.json(books) : res.status(404).json({error : 'No books found.'});
         } 
         catch (error) {
@@ -31,7 +31,7 @@ export function setupRoutes(app: Application) {
 
     app.get('/books/:id', async (req: Request, res: Response) => {
         try {
-            const book = await booksDao.getBook(parseInt(req.params.id));
+            const book = await booksController.getBook(parseInt(req.params.id));
             book ? res.json(book) : res.status(404).json({ error: 'Book not found' });
         } 
         catch (error) {
@@ -43,7 +43,7 @@ export function setupRoutes(app: Application) {
     // Authors routes
     app.get('/authors', async (req: Request, res: Response) => {
         try {
-            const authors = await authorDao.getAllAuthors();
+            const authors = await authorController.getAllAuthors();
             authors ? res.json(authors) : res.status(404).json({error : 'No authors found.'});
         } 
         catch (error) {
@@ -54,7 +54,7 @@ export function setupRoutes(app: Application) {
 
     app.get('/authors/:id', async (req: Request, res: Response) => {
         try {
-            const author = await authorDao.getAuthor(parseInt(req.params.id));
+            const author = await authorController.getAuthor(parseInt(req.params.id));
             author ? res.json(author) : res.status(404).json({ error: 'Author not found' });
         } 
         catch (error) {
@@ -66,7 +66,7 @@ export function setupRoutes(app: Application) {
     // Genres routes
     app.get('/genres', async (req: Request, res: Response) => {
         try {
-            const genres = await genreDao.getAllGenres();
+            const genres = await genreController.getAllGenres();
             genres ? res.json(genres) : res.status(404).json({error : 'No genres found.'});
         } 
         catch (error) {
@@ -77,7 +77,7 @@ export function setupRoutes(app: Application) {
 
     app.get('/genres/:id', async (req: Request, res: Response) => {
         try {
-            const genre = await genreDao.getGenre(parseInt(req.params.id));
+            const genre = await genreController.getGenre(parseInt(req.params.id));
             genre ? res.json(genre) : res.status(404).json({ error: 'Genre not found' });
         } 
         catch (error) {
@@ -89,14 +89,14 @@ export function setupRoutes(app: Application) {
     // Register route
     app.post('/register', async (req: Request, res: Response) => {
         const { username, password } = req.body;
-        const user = await userDao.createUser(username, password);
+        const user = await userController.createUser(username, password);
         res.status(201).json(user);
     });
 
     // Login route
     app.post('/login', async (req: Request, res: Response) => {
         const { username, password } = req.body;
-        const user = await userDao.getUserByUsername(username);
+        const user = await userController.getUserByUsername(username);
         if (user && await bcrypt.compare(password, user.password)) {
             const token = jwt.sign({ id: user.id }, 'your_jwt_secret', { expiresIn: '1h' });
             res.json({ token });

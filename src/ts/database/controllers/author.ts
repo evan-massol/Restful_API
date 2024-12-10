@@ -2,8 +2,9 @@ import { Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { Author } from "../models/author";
 import { format } from 'date-fns';
+import { AuthorDAO } from '../DAO/authorDAO';
 
-export class AuthorDao {
+export class AuthorController implements AuthorDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {

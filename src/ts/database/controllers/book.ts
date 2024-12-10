@@ -1,8 +1,9 @@
 import { Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { Book } from "../models/book.js";
+import { BookDAO } from '../DAO/bookDAO.js';
 
-export class BooksDao {
+export class BooksController implements BookDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {
