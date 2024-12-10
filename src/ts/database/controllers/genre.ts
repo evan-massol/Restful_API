@@ -1,8 +1,9 @@
 import { Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { Genre } from '../models/genre.js';
+import { GenreDAO } from '../DAO/genreDAO.js';
 
-export class GenreController {
+export class GenreController implements GenreDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {

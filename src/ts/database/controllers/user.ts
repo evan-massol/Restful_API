@@ -4,7 +4,7 @@ import { User } from '../models/user';
 import bcrypt from 'bcrypt';
 import { UserDAO } from '../DAO/userDAO';
 
-export class UserController  implements UserDAO {
+export class UserController implements UserDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {
