@@ -31,4 +31,47 @@ export class GenreController implements GenreDAO {
             throw error;
         }
     }
+
+    async createGenre(genre: Partial<Genre>): Promise<Genre | null> {
+        try {
+            const result = await this.db.run(
+                'INSERT INTO Genre (name) VALUES (?)',
+                [genre.name]
+            );
+            
+            if (result.lastID) 
+                return this.getGenre(result.lastID);
+            return null;
+        } 
+        catch (error) {
+            console.error('Error in createGenre:', error);
+            throw error;
+        }
+    }
+
+    async updateGenre(id: number, genre: Partial<Genre>): Promise<Genre | null> {
+        try {
+            if (genre.name) {
+                await this.db.run(
+                    'UPDATE Genre SET name = ? WHERE id = ?',
+                    [genre.name, id]
+                );
+            }
+            return this.getGenre(id);
+        } 
+        catch (error) {
+            console.error('Error in updateGenre:', error);
+            throw error;
+        }
+    }
+
+    async deleteGenre(id: number): Promise<void> {
+        try {
+            await this.db.run('DELETE FROM Genre WHERE id = ?', [id]);
+        } 
+        catch (error) {
+            console.error('Error in deleteGenre:', error);
+            throw error;
+        }
+    }
 }

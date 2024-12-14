@@ -59,4 +59,51 @@ export class BooksController implements BookDAO {
             throw error;
         }
     }
+
+    async createBook(bookData: Partial<Book>): Promise<Book | null> {
+        try {
+            const result = await this.db.run(
+                'INSERT INTO Book (title, author, genre, published_year) VALUES (?, ?, ?, ?)',
+                [bookData.title, bookData.author, bookData.genre, bookData.published_year]
+            );
+            
+            if (result.lastID) 
+                return this.getBook(result.lastID);
+            return null;
+        } 
+        catch (error) {
+            console.error('Error in createBook:', error);
+            throw error;
+        }
+    }
+
+    async updateBook(isbn: number, bookData: Partial<Book>): Promise<Book | null> {
+        try {
+            await this.db.run(
+                `UPDATE Book 
+                SET title = ?,
+                author = ?,
+                genre = ?,
+                published_year = ?,
+                WHERE isbn = ?`,
+                [bookData.title, bookData.author, bookData.genre, bookData.published_year, bookData.isbn]
+            );
+
+            return this.getBook(isbn);
+        } 
+        catch (error) {
+            console.error('Error in updateBook:', error);
+            throw error;
+        }
+    }
+
+    async deleteBook(isbn: number): Promise<void> {
+        try {
+            await this.db.run('DELETE FROM Book WHERE isbn = ?', [isbn]);
+        } 
+        catch (error) {
+            console.error('Error in deleteBook:', error);
+            throw error;
+        }
+    }
 }

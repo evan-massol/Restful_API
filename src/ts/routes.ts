@@ -15,22 +15,16 @@ export function setupRoutes(app: Application) {
 
     // Base route
     app.get('/', authenticateToken, async (req: Request, res: Response) => {
-        res.send("Welcome to the Books API!");
+        res.send('Welcome to the Books API!');
     });
 
     // Books routes
     app.get('/books', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 10;
-            const books = await booksController.getBooks(page, limit);
-            res.json({
-                data: books,
-                page,
-                limit,
-                total: await booksController.getTotalBooks()
-            });
-        } catch (error) {
+            const books = await booksController.getAllBooks();
+            books ? res.json(books) : res.status(404).json({error : 'No books found, try to insert one before getting them.'});
+        } 
+        catch (error) {
             res.status(500).json({ error: 'Error fetching books' });
         }
     });
@@ -41,8 +35,8 @@ export function setupRoutes(app: Application) {
             book ? res.json(book) : res.status(404).json({ error: 'Book not found' });
         } 
         catch (error) {
-            console.error('Error fetching book:', error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error('Error fetching the book: ', error);
+            res.status(500).json({ error: 'Couldn\'t get the specified book' });
         }
     });
 
@@ -50,17 +44,21 @@ export function setupRoutes(app: Application) {
         try {
             const { title, author, genre, published_year } = req.body;
             const book = await booksController.createBook({ title, author, genre, published_year });
-            res.status(201).json(book);
-        } catch (error) {
-            res.status(500).json({ error: 'Error creating book' });
+            book ? res.status(201).json(book) : res.status(404).json({error : 'Error in one or multiple fields when making the request in POST /books'});
+        } 
+        catch (error) {
+            console.error('Error creatina a book: ', error);
+            res.status(500).json({ error: 'Error creating a book' });
         }
     });
 
     app.put('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const book = await booksController.updateBook(parseInt(req.params.id), req.body);
-            res.json(book);
-        } catch (error) {
+            book ? res.json(book) : res.status(400).json({error : 'Error updating the book with id: ' + book!.isbn});
+        } 
+        catch (error) {
+            console.error('Error updating a book: ', error);
             res.status(500).json({ error: 'Error updating book' });
         }
     });
@@ -68,8 +66,10 @@ export function setupRoutes(app: Application) {
     app.delete('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             await booksController.deleteBook(parseInt(req.params.id));
-            res.status(204).send();
-        } catch (error) {
+            res.status(204).send({success : 'Book successfully deleted.'});
+        } 
+        catch (error) {
+            console.error('Error deleting a book: ', error);
             res.status(500).json({ error: 'Error deleting book' });
         }
     });
@@ -81,7 +81,7 @@ export function setupRoutes(app: Application) {
             authors ? res.json(authors) : res.status(404).json({error : 'No authors found.'});
         } 
         catch (error) {
-            console.error('Error fetching authors:', error);
+            console.error('Error fetching authors: ', error);
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
@@ -92,7 +92,39 @@ export function setupRoutes(app: Application) {
             author ? res.json(author) : res.status(404).json({ error: 'Author not found' });
         } 
         catch (error) {
-            console.error('Error fetching author:', error);
+            console.error('Error fetching author: ', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.post('/authors', authenticateToken, async (req: Request, res: Response) => {
+        try {
+            const { name, birthdate } = req.body;
+            const author = await authorController.createAuthor({ name, birthdate });
+            author ? res.status(201).json(author) : res.status(404).json({ error : 'Error in one or multiple fields when making the request in POST /authors'});
+        } 
+        catch (error) {
+            console.error('Error creating an author: ', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.put('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
+        try {
+            const author = await authorController.updateAuthor(parseInt(req.params.id), req.body);
+            author ? res.json(author) : res.status(404).json({ error: 'Error updating the author with id: ' + author!.id});
+        } 
+        catch (error) {
+            console.error('Error updating an author: ', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.delete('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
+        try {
+            await authorController.deleteAuthor(parseInt(req.params.id));
+            res.status(204).send({ success : 'Author successfully deleted.'});
+        } catch (error) {
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
@@ -117,6 +149,39 @@ export function setupRoutes(app: Application) {
         catch (error) {
             console.error('Error fetching genre:', error);
             res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.post('/genres', authenticateToken, async (req: Request, res: Response) => {
+        try {
+            const { name } = req.body;
+            const genre = await genreController.createGenre({ name });
+            res.status(201).json(genre);
+        } 
+        catch (error) {
+            console.error('Error creating a genre: ', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.put('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
+        try {
+            const genre = await genreController.updateGenre(parseInt(req.params.id), req.body);
+            genre ? res.json(genre) : res.status(404).json({ error: 'Genre not found' });
+        } 
+        catch (error) {
+            console.error('Error updating a genre: ', error);
+            res.status(500).json({ error: 'Error updating genre' });
+        }
+    });
+
+    app.delete('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
+        try {
+            await genreController.deleteGenre(parseInt(req.params.id));
+            res.status(204).send({ success : "Genre deleted successfully"});
+        } 
+        catch (error) {
+            res.status(500).json({ error: 'Error deleting genre' });
         }
     });
 
@@ -171,16 +236,6 @@ export function setupRoutes(app: Application) {
             example: 'An example using \'curl\' can be:\n',
             ex: 'curl -X POST http://localhost:3000/login -H "Content-Type: application/json" -d \'{"username": "your_username", "password": "your_password"}\''
         });
-    });
-
-    app.get('/books/search', authenticateToken, async (req: Request, res: Response) => {
-        try {
-            const { title, author, genre, year } = req.query;
-            const books = await booksController.searchBooks({ title, author, genre, year });
-            res.json(books);
-        } catch (error) {
-            res.status(500).json({ error: 'Error searching books' });
-        }
     });
 
     app.use((req: Request, res: Response) => {
