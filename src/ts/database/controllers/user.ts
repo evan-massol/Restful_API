@@ -13,9 +13,27 @@ export class UserController implements UserDAO {
 
     async createUser(username: string, password: string): Promise<User | null> {
         try {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const result = await this.db.run('INSERT INTO Users (username, password) VALUES (?, ?)', [username, hashedPassword]);
-            return { id: result.lastID ?? 0, username, password: hashedPassword };
+            if (!username || !password) {
+                throw new Error('Username and password are required');
+            }
+
+            const existingUser = await this.getUserByUsername(username);
+            if (existingUser) 
+                throw new Error('Username already exists');
+
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+            const result = await this.db.run(
+                'INSERT INTO Users (username, password) VALUES (?, ?)',
+                [username, hashedPassword]
+            );
+
+            return {
+                id: result.lastID ?? 0,
+                username,
+                password: hashedPassword
+            };
         } 
         catch (error) {
             console.error('Error in createUser:', error);

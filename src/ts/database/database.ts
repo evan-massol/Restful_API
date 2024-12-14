@@ -12,7 +12,6 @@ export async function initDB() {
     driver: sqlite3.Database,
   });
 
-  await clearDatabase(db); //Clear the database
   await createTables(db);  //Create the tables if they don't exist already
 
   await seedDatabase(db);  //Fill the database with data
@@ -45,6 +44,14 @@ async function createTables(db: Database) {
         published_year INTEGER NOT NULL,
         FOREIGN KEY (author) REFERENCES Author(id),
         FOREIGN KEY (genre) REFERENCES Genre(id)
+    );
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS Users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        password TEXT NOT NULL
     );
   `);
 }
