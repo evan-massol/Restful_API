@@ -1,9 +1,9 @@
 import { Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
-import { Genre } from '../models/genre.js';
-import { GenreDAO } from '../DAO/genreDAO.js';
+import { Genre } from '../../models/genre.js';
+import { GenreDAO } from '../genreDAO.js';
 
-export class GenreController implements GenreDAO {
+export class GenreDbDAO implements GenreDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {
@@ -88,6 +88,8 @@ export class GenreController implements GenreDAO {
             const genre = await this.db.get('SELECT * FROM Genre WHERE id = ?', [id]);
             if (!genre) 
                 throw new Error('Genre not found.');
+
+            await this.db.run('UPDATE Book SET genre = NULL WHERE genre = ?', [id]);
 
             await this.db.run('DELETE FROM Genre WHERE id = ?', [id]);
         } 

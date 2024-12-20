@@ -5,7 +5,7 @@
 
 import type {Config} from 'jest';
 // jest.config.ts
-import { createDefaultPreset, type JestConfigWithTsJest } from 'ts-jest'
+import { type JestConfigWithTsJest } from 'ts-jest'
 
 const jestConfig: JestConfigWithTsJest = {
   // All imported modules in your tests should be mocked automatically
@@ -86,7 +86,10 @@ const jestConfig: JestConfigWithTsJest = {
   ],
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -98,7 +101,7 @@ const jestConfig: JestConfigWithTsJest = {
   // notifyMode: "failure-change",
 
   // A preset that is used as a base for Jest's configuration
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
 
   // Run tests from one or more projects
   // projects: undefined,
@@ -142,7 +145,7 @@ const jestConfig: JestConfigWithTsJest = {
   // snapshotSerializers: [],
 
   // The test environment that will be used for testing
-  testEnvironment: "node",
+  testEnvironment: "./setup.jest.ts",
 
   // Options that will be passed to the testEnvironment
   // testEnvironmentOptions: {},
@@ -171,9 +174,14 @@ const jestConfig: JestConfigWithTsJest = {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    ...createDefaultPreset().transform,
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
   },
+
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [

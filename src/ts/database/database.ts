@@ -16,6 +16,9 @@ export async function initDB() {
         driver: sqlite3.Database,
     });
 
+
+    await db.exec('PRAGMA foreign_keys = ON;');
+
     if (!dbExists) {
         console.log('Database does not exist, creating tables and seeding data...');
         await createTables(db);
@@ -29,40 +32,41 @@ export async function initDB() {
 }
 
 async function createTables(db: Database) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS Author (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(40) NOT NULL,
-        birthdate DATETIME
-    );
-  `);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS Genre (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(50) NOT NULL
-    );
-  `);
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS Author (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(40) NOT NULL,
+            birthdate DATETIME
+        );
+    `);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS Book (
-        isbn INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(40) NOT NULL,
-        author INTEGER NOT NULL,
-        genre INTEGER NOT NULL,
-        published_year INTEGER NOT NULL,
-        FOREIGN KEY (author) REFERENCES Author(id) ON DELETE SET NULL,
-        FOREIGN KEY (genre) REFERENCES Genre(id) ON DELETE SET NULL
-    );
-  `);
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS Genre (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(50) NOT NULL
+        );
+    `);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS Users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
-        password TEXT NOT NULL
-    );
-  `);
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS Book (
+            isbn INTEGER PRIMARY KEY AUTOINCREMENT,
+            title VARCHAR(40) NOT NULL,
+            author INTEGER,
+            genre INTEGER,
+            published_year INTEGER NOT NULL,
+            FOREIGN KEY (author) REFERENCES Author(id) ON DELETE SET NULL,
+            FOREIGN KEY (genre) REFERENCES Genre(id) ON DELETE SET NULL
+        );
+    `);
+
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS Users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            password TEXT NOT NULL
+        );
+    `);
 }
 
 async function seedDatabase(db: Database) {

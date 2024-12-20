@@ -1,9 +1,9 @@
 import { Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
-import { Book } from "../models/book.js";
-import { BookDAO } from '../DAO/bookDAO.js';
+import { Book } from "../../models/book.js";
+import { BookDAO } from '../bookDAO.js';
 
-export class BooksController implements BookDAO {
+export class BookDbDAO implements BookDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {
@@ -21,9 +21,9 @@ export class BooksController implements BookDAO {
                     b.published_year 
                 FROM 
                     Book b
-                JOIN 
+                LEFT JOIN 
                     Author a ON b.author = a.id
-                JOIN 
+                LEFT JOIN 
                     Genre g ON b.genre = g.id
                 WHERE 
                     b.isbn = ?
@@ -47,9 +47,9 @@ export class BooksController implements BookDAO {
                     b.published_year 
                 FROM 
                     Book b
-                JOIN 
+                LEFT JOIN 
                     Author a ON b.author = a.id
-                JOIN 
+                LEFT JOIN 
                     Genre g ON b.genre = g.id
             `);
             return books || null;
@@ -93,7 +93,7 @@ export class BooksController implements BookDAO {
         try {
             const updates: string[] = [];
             const params: any[] = [];
-            
+
             (Object.keys(bookData) as Array<keyof Partial<Book>>).forEach(key => {
                 if (bookData[key] !== undefined || bookData[key] !== null) {
                     updates.push(`${key} = ?`);

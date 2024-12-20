@@ -1,10 +1,10 @@
 import { Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
-import { Author } from "../models/author";
+import { Author } from "../../models/author";
 import { format } from 'date-fns';
-import { AuthorDAO } from '../DAO/authorDAO';
+import { AuthorDAO } from '../authorDAO';
 
-export class AuthorController implements AuthorDAO {
+export class AuthorDbDAO implements AuthorDAO {
     private db: Database<sqlite3.Database>;
 
     constructor(db: Database<sqlite3.Database>) {
@@ -92,6 +92,9 @@ export class AuthorController implements AuthorDAO {
             const author = await this.db.get('SELECT * FROM Author WHERE id = ?', [id]);
             if(!author)
                 throw new Error('Author not found.');
+
+            await this.db.run('UPDATE Book SET author = NULL WHERE author = ?', [id]);
+
             await this.db.run('DELETE FROM Author WHERE id = ?', [id]);
         } 
         catch (error) {
