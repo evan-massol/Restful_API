@@ -34,13 +34,18 @@ export class GenreController implements GenreDAO {
 
     async createGenre(genre: Partial<Genre>): Promise<Genre | null> {
         try {
-            const result = await this.db.run(
-                'INSERT INTO Genre (name) VALUES (?)',
-                [genre.name]
-            );
+            if(!genre) return null;
+            let existingGenre = await this.db.get('SELECT * FROM Genre WHERE LOWER(name) = ?', [genre.name!.trim().toLowerCase()]);
+            if (!existingGenre){
+                const result = await this.db.run(
+                    'INSERT INTO Genre (name) VALUES (?)',
+                    [genre.name]
+                );
+
+                if (result.lastID) 
+                    return this.getGenre(result.lastID);
+            }
             
-            if (result.lastID) 
-                return this.getGenre(result.lastID);
             return null;
         } 
         catch (error) {
@@ -49,14 +54,27 @@ export class GenreController implements GenreDAO {
         }
     }
 
-    async updateGenre(id: number, genre: Partial<Genre>): Promise<Genre | null> {
+    async updateGenre(id: number, genreData: Partial<Genre>): Promise<Genre | null> {
         try {
-            if (genre.name) {
-                await this.db.run(
-                    'UPDATE Genre SET name = ? WHERE id = ?',
-                    [genre.name, id]
-                );
-            }
+            const updates: string[] = [];
+            const params: any[] = [];
+
+            (Object.keys(genreData) as Array<keyof Partial<Genre>>).forEach(key => {
+                if (genreData[key] !== undefined || genreData[key] !== null) {
+                    updates.push(`${key} = ?`);
+                    params.push(genreData[key]);
+                }
+            });
+
+            params.push(id);
+
+            await this.db.run(
+                `UPDATE Genre 
+                SET ${updates.join(', ')}
+                WHERE id = ?`,
+                params
+            );
+
             return this.getGenre(id);
         } 
         catch (error) {
@@ -67,6 +85,10 @@ export class GenreController implements GenreDAO {
 
     async deleteGenre(id: number): Promise<void> {
         try {
+            const genre = await this.db.get('SELECT * FROM Genre WHERE id = ?', [id]);
+            if (!genre) 
+                throw new Error('Genre not found.');
+
             await this.db.run('DELETE FROM Genre WHERE id = ?', [id]);
         } 
         catch (error) {

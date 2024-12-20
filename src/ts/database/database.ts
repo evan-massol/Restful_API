@@ -51,8 +51,8 @@ async function createTables(db: Database) {
         author INTEGER NOT NULL,
         genre INTEGER NOT NULL,
         published_year INTEGER NOT NULL,
-        FOREIGN KEY (author) REFERENCES Author(id),
-        FOREIGN KEY (genre) REFERENCES Genre(id)
+        FOREIGN KEY (author) REFERENCES Author(id) ON DELETE SET NULL,
+        FOREIGN KEY (genre) REFERENCES Genre(id) ON DELETE SET NULL
     );
   `);
 

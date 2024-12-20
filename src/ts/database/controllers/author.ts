@@ -60,24 +60,23 @@ export class AuthorController implements AuthorDAO {
 
     async updateAuthor(id: number, authorData: Partial<Author>): Promise<Author | null> {
         try {
-            const updates = [];
-            const values = [];
-            
-            if (authorData.name) {
-                updates.push('name = ?');
-                values.push(authorData.name);
-            }
+            const updates: string[] = [];
+            const params: any[] = [];
 
-            if (authorData.birthdate) {
-                updates.push('birthdate = ?');
-                values.push(authorData.birthdate);
-            }
+            (Object.keys(authorData) as Array<keyof Partial<Author>>).forEach(key => {
+                if (authorData[key] !== undefined || authorData[key] !== null) {
+                    updates.push(`${key} = ?`);
+                    params.push(authorData[key]);
+                }
+            });
 
-            values.push(id);
-            
+            params.push(id);
+
             await this.db.run(
-                `UPDATE Author SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                `UPDATE Author 
+                SET ${updates.join(', ')}
+                WHERE id = ?`,
+                params
             );
 
             return this.getAuthor(id);
@@ -90,6 +89,9 @@ export class AuthorController implements AuthorDAO {
 
     async deleteAuthor(id: number): Promise<void> {
         try {
+            const author = await this.db.get('SELECT * FROM Author WHERE id = ?', [id]);
+            if(!author)
+                throw new Error('Author not found.');
             await this.db.run('DELETE FROM Author WHERE id = ?', [id]);
         } 
         catch (error) {

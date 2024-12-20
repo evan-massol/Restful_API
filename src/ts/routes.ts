@@ -47,7 +47,7 @@ export function setupRoutes(app: Application) {
             book ? res.status(201).json(book) : res.status(404).json({error : 'Error in one or multiple fields when making the request in POST /books'});
         } 
         catch (error) {
-            console.error('Error creatina a book: ', error);
+            console.error('Error creating a book: ', error);
             res.status(500).json({ error: 'Error creating a book' });
         }
     });
@@ -68,7 +68,13 @@ export function setupRoutes(app: Application) {
             await booksController.deleteBook(parseInt(req.params.id));
             res.status(204).send({success : 'Book successfully deleted.'});
         } 
-        catch (error) {
+        catch (error : any) {
+            if (error.message === 'Book not found.') 
+                res.status(404).json({ error: 'Book with the specified ISBN does not exist.' });
+            else {
+                console.error('Error deleting book: ', error);
+                res.status(500).json({ error: 'Error deleting book' });
+            }
             console.error('Error deleting a book: ', error);
             res.status(500).json({ error: 'Error deleting book' });
         }
@@ -124,7 +130,13 @@ export function setupRoutes(app: Application) {
         try {
             await authorController.deleteAuthor(parseInt(req.params.id));
             res.status(204).send({ success : 'Author successfully deleted.'});
-        } catch (error) {
+        } catch (error : any) {
+            if (error.message === 'Author not found.') 
+                res.status(404).json({ error: 'Author with the specified ID does not exist.' });
+            else {
+                console.error('Error deleting author: ', error);
+                res.status(500).json({ error: 'Error deleting author' });
+            }
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
@@ -178,10 +190,15 @@ export function setupRoutes(app: Application) {
     app.delete('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             await genreController.deleteGenre(parseInt(req.params.id));
-            res.status(204).send({ success : "Genre deleted successfully"});
+            res.status(204).send({ success: "Genre deleted successfully" });
         } 
-        catch (error) {
-            res.status(500).json({ error: 'Error deleting genre' });
+        catch (error : any) {
+            if (error.message === 'Genre not found.') 
+                res.status(404).json({ error: 'Genre with the specified ID does not exist.' });
+            else {
+                console.error('Error deleting genre: ', error);
+                res.status(500).json({ error: 'Error deleting genre' });
+            }
         }
     });
 

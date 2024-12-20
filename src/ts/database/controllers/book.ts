@@ -62,11 +62,23 @@ export class BooksController implements BookDAO {
 
     async createBook(bookData: Partial<Book>): Promise<Book | null> {
         try {
+            let author = await this.db.get('SELECT * FROM Author WHERE LOWER(name) = ?', [bookData.author!.name.trim().toLowerCase()]);
+            if (!author) {
+                const result = await this.db.run('INSERT INTO Author (name) VALUES (?)', [bookData.author]);
+                author = { id: result.lastID, name: bookData.author }; 
+            }
+
+            let genre = await this.db.get('SELECT * FROM Genre WHERE LOWER(name) = ?', [bookData.genre?.name.trim().toLowerCase()]);
+            if (!genre) {
+                const result = await this.db.run('INSERT INTO Genre (name) VALUES (?)', [bookData.genre]);
+                genre = { id: result.lastID, name: bookData.genre };
+            }
+
             const result = await this.db.run(
                 'INSERT INTO Book (title, author, genre, published_year) VALUES (?, ?, ?, ?)',
-                [bookData.title, bookData.author, bookData.genre, bookData.published_year]
+                [bookData.title, author.id, genre.id, bookData.published_year]
             );
-            
+
             if (result.lastID) 
                 return this.getBook(result.lastID);
             return null;
@@ -79,14 +91,23 @@ export class BooksController implements BookDAO {
 
     async updateBook(isbn: number, bookData: Partial<Book>): Promise<Book | null> {
         try {
+            const updates: string[] = [];
+            const params: any[] = [];
+            
+            (Object.keys(bookData) as Array<keyof Partial<Book>>).forEach(key => {
+                if (bookData[key] !== undefined || bookData[key] !== null) {
+                    updates.push(`${key} = ?`);
+                    params.push(bookData[key]);
+                }
+            });
+
+            params.push(isbn);
+
             await this.db.run(
                 `UPDATE Book 
-                SET title = ?,
-                author = ?,
-                genre = ?,
-                published_year = ?,
+                SET ${updates.join(', ')}
                 WHERE isbn = ?`,
-                [bookData.title, bookData.author, bookData.genre, bookData.published_year, bookData.isbn]
+                params
             );
 
             return this.getBook(isbn);
@@ -99,6 +120,10 @@ export class BooksController implements BookDAO {
 
     async deleteBook(isbn: number): Promise<void> {
         try {
+            const book = await this.db.get('SELECT * FROM Book WHERE isbn = ?', [isbn]);
+            if(!book)
+                throw new Error('Book not found.');
+
             await this.db.run('DELETE FROM Book WHERE isbn = ?', [isbn]);
         } 
         catch (error) {
