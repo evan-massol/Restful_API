@@ -1,10 +1,12 @@
+import { Database } from 'sqlite';
+import sqlite3 from 'sqlite3';
 import { AuthorDbDAO } from '../DAO/dbDAO/author.js';
 import { Author } from '../models/author.js';
 
 export class AuthorService {
     private authorDbDAO: AuthorDbDAO;
 
-    constructor(db: any) {
+    constructor(db: Database<sqlite3.Database>) {
         this.authorDbDAO = new AuthorDbDAO(db);
     }
 

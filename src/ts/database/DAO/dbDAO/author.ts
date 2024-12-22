@@ -43,6 +43,9 @@ export class AuthorDbDAO implements AuthorDAO {
 
     async createAuthor(authorData: Partial<Author>): Promise<Author | null> {
         try {
+            if (authorData.birthdate && !this.isValidDate(authorData.birthdate)) 
+                throw new Error('Invalid birthdate format. Expected format: YYYY-MM-DD');
+
             const result = await this.db.run(
                 'INSERT INTO Author (name, birthdate) VALUES (?, ?)',
                 [authorData.name, authorData.birthdate]
@@ -73,9 +76,7 @@ export class AuthorDbDAO implements AuthorDAO {
             params.push(id);
 
             await this.db.run(
-                `UPDATE Author 
-                SET ${updates.join(', ')}
-                WHERE id = ?`,
+                `UPDATE Author SET ${updates.join(', ')} WHERE id = ?`,
                 params
             );
 
@@ -101,5 +102,10 @@ export class AuthorDbDAO implements AuthorDAO {
             console.error('Error in deleteAuthor:', error);
             throw error;
         }
+    }
+
+    private isValidDate(dateString: string): boolean {
+        const regex = /^\d{4}-\d{2}-\d{2}$/;
+        return regex.test(dateString);
     }
 }

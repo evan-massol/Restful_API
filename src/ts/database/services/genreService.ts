@@ -1,10 +1,12 @@
+import { Database } from 'sqlite';
+import sqlite3 from 'sqlite3';
 import { GenreDbDAO } from '../DAO/dbDAO/genre.js';
 import { Genre } from '../models/genre.js';
 
 export class GenreService {
     private genreDbDAO: GenreDbDAO;
 
-    constructor(db: any) {
+    constructor(db: Database<sqlite3.Database>) {
         this.genreDbDAO = new GenreDbDAO(db);
     }
 

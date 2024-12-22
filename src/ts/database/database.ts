@@ -36,7 +36,7 @@ async function createTables(db: Database) {
     await db.exec(`
         CREATE TABLE IF NOT EXISTS Author (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(40) NOT NULL,
+            name VARCHAR(40) UNIQUE NOT NULL,
             birthdate DATETIME
         );
     `);
@@ -44,7 +44,7 @@ async function createTables(db: Database) {
     await db.exec(`
         CREATE TABLE IF NOT EXISTS Genre (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(50) NOT NULL
+            name VARCHAR(50) UNIQUE NOT NULL
         );
     `);
 

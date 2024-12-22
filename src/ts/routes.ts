@@ -107,11 +107,14 @@ export function setupRoutes(app: Application) {
         try {
             const { name, birthdate } = req.body;
             const author = await authorService.createAuthor({ name, birthdate });
-            author ? res.status(201).json(author) : res.status(404).json({ error : 'Error in one or multiple fields when making the request in POST /authors'});
+            res.status(201).json(author);
         } 
-        catch (error) {
+        catch (error : any) {
             console.error('Error creating an author: ', error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            if (error.message.includes('Invalid birthdate format')) 
+                res.status(400).json({ error: error.message });
+            else 
+                res.status(500).json({ error: 'Internal Server Error' });
         }
     });
 

@@ -26,8 +26,7 @@ export class BookDbDAO implements BookDAO {
                 LEFT JOIN 
                     Genre g ON b.genre = g.id
                 WHERE 
-                    b.isbn = ?
-            `, [isbn]);
+                    b.isbn = ?`, [isbn]);
             return book || null;
         } 
         catch (error) {
@@ -104,9 +103,7 @@ export class BookDbDAO implements BookDAO {
             params.push(isbn);
 
             await this.db.run(
-                `UPDATE Book 
-                SET ${updates.join(', ')}
-                WHERE isbn = ?`,
+                `UPDATE Book SET ${updates.join(', ')} WHERE isbn = ?`,
                 params
             );
 

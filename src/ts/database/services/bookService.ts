@@ -1,10 +1,12 @@
+import { Database } from 'sqlite';
+import sqlite3 from 'sqlite3';
 import { BookDbDAO } from '../DAO/dbDAO/book.js';
 import { Book } from '../models/book.js';
 
 export class BookService {
     private bookDbDAO: BookDbDAO;
 
-    constructor(db: any) {
+    constructor(db: Database<sqlite3.Database>) {
         this.bookDbDAO = new BookDbDAO(db);
     }
 

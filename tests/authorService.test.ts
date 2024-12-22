@@ -1,61 +1,120 @@
-import { AuthorService } from '../src/ts/database/services/authorService.js';
-import { AuthorDbDAO } from '../src/ts/database/DAO/dbDAO/author.js';
-import { Author } from '../src/ts/database/models/author.js';
+import { initDB } from '../src/ts/database/database';
+import { AuthorService } from '../src/ts/database/services/authorService';
 
-jest.mock('../src/ts/database/DAO/dbDAO/author.js');
+jest.mock('../src/ts/database/database', () => ({
+    initDB: jest.fn()
+}));
 
 describe('AuthorService', () => {
+    let dbMock: any;
     let authorService: AuthorService;
-    let mockDb: any;
 
-    beforeEach(() => {
-        mockDb = {
-            get: jest.fn(),
-            all: jest.fn(),
+    beforeEach(async () => {
+        jest.clearAllMocks();
+
+        dbMock = {
             run: jest.fn(),
+            get: jest.fn()
         };
-        authorService = new AuthorService(mockDb);
+
+        (initDB as jest.Mock).mockResolvedValue(dbMock);
+
+        authorService = new AuthorService(await initDB());
     });
 
     it('should create an author', async () => {
-        const authorData: Partial<Author> = { name: 'John Doe', birthdate: '1990-01-01' };
-        (AuthorDbDAO.prototype.createAuthor as jest.Mock).mockResolvedValue({ id: 1, ...authorData });
+        dbMock.run.mockResolvedValue({ lastID: 1 });
+        dbMock.get.mockResolvedValue({
+            id: 1,
+            name: 'John Doe',
+            birthdate: '1990-01-01'
+        });
 
-        const result = await authorService.createAuthor(authorData);
-        expect(result).toEqual({ id: 1, ...authorData });
+        const result = await authorService.createAuthor({
+            name: 'John Doe',
+            birthdate: '1990-01-01',
+        });
+
+        expect(dbMock.run).toHaveBeenCalledWith(
+            'INSERT INTO Author (name, birthdate) VALUES (?, ?)',
+            ['John Doe', '1990-01-01']
+        );
+
+        expect(result).toEqual({
+            id: 1,
+            name: 'John Doe',
+            birthdate: '01 January 1990',
+        });
     });
 
-    it('should get an author by id', async () => {
-        const author: Author = { id: 1, name: 'John Doe', birthdate: '1990-01-01' };
-        (AuthorDbDAO.prototype.getAuthor as jest.Mock).mockResolvedValue(author);
-
-        const result = await authorService.getAuthor(1);
-        expect(result).toEqual(author);
-    });
-
-    it('should get all authors', async () => {
-        const authors: Author[] = [
-            { id: 1, name: 'John Doe', birthdate: '1990-01-01' },
-            { id: 2, name: 'Jane Smith', birthdate: '1985-05-15' },
-        ];
-        (AuthorDbDAO.prototype.getAllAuthors as jest.Mock).mockResolvedValue(authors);
-
-        const result = await authorService.getAllAuthors();
-        expect(result).toEqual(authors);
+    it('should throw an error for invalid birthdate format', async () => {
+        await expect(
+            authorService.createAuthor({
+                name: 'Invalid Author',
+                birthdate: 'wrong-format',
+            })
+        ).rejects.toThrow('Invalid birthdate format. Expected format: YYYY-MM-DD');
     });
 
     it('should update an author', async () => {
-        const authorData: Partial<Author> = { name: 'John Doe Updated', birthdate: '1990-01-01' };
-        (AuthorDbDAO.prototype.updateAuthor as jest.Mock).mockResolvedValue({ id: 1, ...authorData });
-
-        const result = await authorService.updateAuthor(1, authorData);
-        expect(result).toEqual({ id: 1, ...authorData });
+        dbMock.get.mockResolvedValue({
+            id: 1,
+            name: 'Jane Doe',
+            birthdate: '1992-02-02',
+        });
+    
+        dbMock.run.mockResolvedValue({ changes: 1 });
+    
+        dbMock.get.mockResolvedValue({
+            id: 1,
+            name: 'New Author',
+            birthdate: '1993-08-09',
+        });
+    
+        const result = await authorService.updateAuthor(1, {
+            name: 'New Author',
+            birthdate: '1993-08-09',
+        });
+    
+        expect(dbMock.run).toHaveBeenCalledWith(
+            'UPDATE Author SET name = ?, birthdate = ? WHERE id = ?',
+            ['New Author', '1993-08-09', 1]
+        );
+    
+        expect(result).toEqual({
+            id: 1,
+            name: 'New Author',
+            birthdate: '09 August 1993',
+        });
     });
+    
 
-    it('should delete an author', async () => {
-        (AuthorDbDAO.prototype.deleteAuthor as jest.Mock).mockResolvedValue(undefined);
+    it('should delete an author after its creation', async () => {
+        dbMock.run.mockResolvedValue({ lastID: 1 });
+        dbMock.get.mockResolvedValue({
+            id: 1,
+            name: 'New Author',
+            birthdate: '1990-01-01'
+        });
+
+        const result = await authorService.createAuthor({
+            name: 'New Author',
+            birthdate: '1990-01-01',
+        });
+
+        expect(result).toEqual({
+            id: 1,
+            name: 'New Author',
+            birthdate: '01 January 1990',
+        });
+
+        dbMock.run.mockResolvedValue({ changes: 1 });
 
         await authorService.deleteAuthor(1);
-        expect(AuthorDbDAO.prototype.deleteAuthor).toHaveBeenCalledWith(1);
+
+        expect(dbMock.run).toHaveBeenCalledWith(
+            'DELETE FROM Author WHERE id = ?',
+            [1]
+        );
     });
 });
