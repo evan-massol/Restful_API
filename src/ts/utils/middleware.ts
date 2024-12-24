@@ -18,7 +18,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
             error: 'Authentication required',
             message: 'To use this API, please follow these steps:',
             steps: [
-                '1. Go to the swagger UI at http://localhost:3000/api-docs',
+                '1. Go to the swagger UI at http://localhost:3000/documentation',
                 '2. Create a user with the register endpoint',
                 '3. Login with the login endpoint to get a token',
                 '4. Use the token by adding it to the Authorize button in the swagger UI'
