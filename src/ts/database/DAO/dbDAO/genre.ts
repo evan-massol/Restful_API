@@ -56,22 +56,25 @@ export class GenreDbDAO implements GenreDAO {
 
     async updateGenre(id: number, genreData: Partial<Genre>): Promise<Genre | null> {
         try {
+            const genre = await this.getGenre(id);
+            if (!genre) 
+                throw new Error('Genre not found.');
+
             const updates: string[] = [];
             const params: any[] = [];
 
-            (Object.keys(genreData) as Array<keyof Partial<Genre>>).forEach(key => {
-                if (genreData[key] !== undefined || genreData[key] !== null) {
-                    updates.push(`${key} = ?`);
-                    params.push(genreData[key]);
-                }
-            });
+            if (genreData.name) {
+                updates.push('name = ?');
+                params.push(genreData.name);
+            }
 
             params.push(id);
 
-            await this.db.run(
-                `UPDATE Genre SET ${updates.join(', ')} WHERE id = ?`,
-                params
-            );
+            if (updates.length > 0) 
+                await this.db.run(
+                    `UPDATE Genre SET ${updates.join(', ')} WHERE id = ?`,
+                    params
+                );
 
             return this.getGenre(id);
         } 

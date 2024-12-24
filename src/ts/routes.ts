@@ -7,6 +7,7 @@ import { GenreService } from './database/services/genreService.js';
 import { UserService } from './database/services/userService.js';
 import bcrypt from 'bcrypt';
 
+// Setup routes
 export function setupRoutes(app: Application) {
     const booksService = new BookService(app.locals.db);
     const authorService = new AuthorService(app.locals.db);
@@ -19,6 +20,7 @@ export function setupRoutes(app: Application) {
     });
 
     // Books routes
+    // Get all books
     app.get('/books', authenticateToken, async (req: Request, res: Response) => {
         try {
             const books = await booksService.getAllBooks();
@@ -28,7 +30,7 @@ export function setupRoutes(app: Application) {
             res.status(500).json({ error: 'Error fetching books' });
         }
     });
-
+    // Get a book by its ISBN
     app.get('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const book = await booksService.getBook(parseInt(req.params.id));
@@ -40,6 +42,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Create a book
     app.post('/books', authenticateToken, async (req: Request, res: Response) => {
         try {
             const { title, author, genre, published_year } = req.body;
@@ -52,6 +55,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Update a book
     app.put('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const book = await booksService.updateBook(parseInt(req.params.id), req.body);
@@ -63,6 +67,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Delete a book
     app.delete('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             await booksService.deleteBook(parseInt(req.params.id));
@@ -81,6 +86,7 @@ export function setupRoutes(app: Application) {
     });
 
     // Authors routes
+    // Get all authors
     app.get('/authors', authenticateToken, async (req: Request, res: Response) => {
         try {
             const authors = await authorService.getAllAuthors();
@@ -92,6 +98,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Get an author by its ID
     app.get('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const author = await authorService.getAuthor(parseInt(req.params.id));
@@ -103,6 +110,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Create an author
     app.post('/authors', authenticateToken, async (req: Request, res: Response) => {
         try {
             const { name, birthdate } = req.body;
@@ -118,6 +126,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Update an author
     app.put('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const author = await authorService.updateAuthor(parseInt(req.params.id), req.body);
@@ -129,6 +138,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Delete an author
     app.delete('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             await authorService.deleteAuthor(parseInt(req.params.id));
@@ -145,6 +155,7 @@ export function setupRoutes(app: Application) {
     });
 
     // Genres routes
+    // Get all genres
     app.get('/genres', authenticateToken, async (req: Request, res: Response) => {
         try {
             const genres = await genreService.getAllGenres();
@@ -156,6 +167,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Get a genre by its ID
     app.get('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const genre = await genreService.getGenre(parseInt(req.params.id));
@@ -167,6 +179,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Create a genre
     app.post('/genres', authenticateToken, async (req: Request, res: Response) => {
         try {
             const { name } = req.body;
@@ -179,6 +192,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Update a genre
     app.put('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             const genre = await genreService.updateGenre(parseInt(req.params.id), req.body);
@@ -190,6 +204,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Delete a genre
     app.delete('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             await genreService.deleteGenre(parseInt(req.params.id));
@@ -250,6 +265,7 @@ export function setupRoutes(app: Application) {
         }
     });
 
+    // Login route if the user tries to access it with a GET request
     app.get('/login', (req: Request, res: Response) => {
         res.json({ 
             message: 'Please login with a POST request if you already have a JWT token.',
@@ -258,6 +274,7 @@ export function setupRoutes(app: Application) {
         });
     });
 
+    // 404 route
     app.use((req: Request, res: Response) => {
         res.status(404).json({ error: 'Route not found' });
     });

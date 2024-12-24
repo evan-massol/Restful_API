@@ -63,22 +63,33 @@ export class AuthorDbDAO implements AuthorDAO {
 
     async updateAuthor(id: number, authorData: Partial<Author>): Promise<Author | null> {
         try {
+            // Vérifier que l'auteur existe
+            const author = await this.getAuthor(id);
+            if (!author) 
+                throw new Error('Author not found.');
+
             const updates: string[] = [];
             const params: any[] = [];
 
-            (Object.keys(authorData) as Array<keyof Partial<Author>>).forEach(key => {
-                if (authorData[key] !== undefined || authorData[key] !== null) {
-                    updates.push(`${key} = ?`);
-                    params.push(authorData[key]);
-                }
-            });
+            if (authorData.name) {
+                updates.push('name = ?');
+                params.push(authorData.name);
+            }
+            if (authorData.birthdate) {
+                if (!this.isValidDate(authorData.birthdate))
+                    throw new Error('Invalid birthdate format. Expected format: YYYY-MM-DD');
+                updates.push('birthdate = ?');
+                params.push(authorData.birthdate);
+            }
 
             params.push(id);
 
-            await this.db.run(
-                `UPDATE Author SET ${updates.join(', ')} WHERE id = ?`,
-                params
-            );
+            if (updates.length > 0) {
+                await this.db.run(
+                    `UPDATE Author SET ${updates.join(', ')} WHERE id = ?`,
+                    params
+                );
+            }
 
             return this.getAuthor(id);
         } 
@@ -106,6 +117,8 @@ export class AuthorDbDAO implements AuthorDAO {
 
     private isValidDate(dateString: string): boolean {
         const regex = /^\d{4}-\d{2}-\d{2}$/;
-        return regex.test(dateString);
+        if (!regex.test(dateString)) return false;
+        const date = new Date(dateString);
+        return date instanceof Date && !isNaN(date.getTime());
     }
 }

@@ -10,52 +10,42 @@ describe('GenreService', () => {
     let dbMock: any;
 
     beforeEach(async () => {
-        jest.clearAllMocks();
-    
         dbMock = {
             run: jest.fn(),
             get: jest.fn(),
+            all: jest.fn(),
             exec: jest.fn()
         };
-    
-        dbMock.get.mockResolvedValue(null);
-        dbMock.run.mockResolvedValue({ lastID: 1 });
-    
+
         (initDB as jest.Mock).mockResolvedValue(dbMock);
         genreService = new GenreService(await initDB());
     });
-    
 
-    it('should create a genre', async () => {
-        dbMock.run.mockResolvedValue({ lastID: 1 });
-        dbMock.get.mockResolvedValue({
-            id: 1,
-            name: 'Fantasy'
-        });
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
 
-        const result = await genreService.createGenre({ name: 'Fantasy' });
+    it('should get all genres', async () => {
+        const mockGenres = [
+            { id: 1, name: 'Fantasy' },
+            { id: 2, name: 'Science Fiction' }
+        ];
 
-        expect(dbMock.run).toHaveBeenCalledWith(
-            'INSERT INTO Genre (name) VALUES (?)',
-            ['Fantasy']
-        );
+        dbMock.all.mockResolvedValue(mockGenres);
 
-        expect(dbMock.get).toHaveBeenCalledWith(
-            'SELECT * FROM Genre WHERE id = ?',
-            [1]
-        );
+        const result = await genreService.getAllGenres();
 
-        expect(result).toEqual({
-            id: 1,
-            name: 'Fantasy'
-        });
+        expect(dbMock.all).toHaveBeenCalledWith('SELECT * FROM Genre');
+        expect(result).toEqual(mockGenres);
     });
 
     it('should get a genre by id', async () => {
-        dbMock.get.mockResolvedValue({
+        const mockGenre = {
             id: 1,
             name: 'Fantasy'
-        });
+        };
+
+        dbMock.get.mockResolvedValue(mockGenre);
 
         const result = await genreService.getGenre(1);
 
@@ -63,67 +53,82 @@ describe('GenreService', () => {
             'SELECT * FROM Genre WHERE id = ?',
             [1]
         );
+        expect(result).toEqual(mockGenre);
+    });
 
+    it('should return null for non-existent genre', async () => {
+        dbMock.get.mockResolvedValue(null);
+
+        const result = await genreService.getGenre(999);
+
+        expect(dbMock.get).toHaveBeenCalledWith(
+            'SELECT * FROM Genre WHERE id = ?',
+            [999]
+        );
+        expect(result).toBeNull();
+    });
+
+    it('should create a genre', async () => {
+        dbMock.run.mockResolvedValue({ lastID: 1 });
+        dbMock.get.mockResolvedValue({
+            id: 1,
+            name: 'New Genre'
+        });
+
+        const result = await genreService.createGenre({
+            name: 'New Genre'
+        });
+
+        expect(dbMock.run).toHaveBeenCalledWith(
+            'INSERT INTO Genre (name) VALUES (?)',
+            ['New Genre']
+        );
         expect(result).toEqual({
             id: 1,
-            name: 'Fantasy'
+            name: 'New Genre'
         });
     });
 
     it('should update a genre', async () => {
-        dbMock.get.mockResolvedValue({
+        dbMock.get.mockResolvedValueOnce({
             id: 1,
-            name: 'Fantasy',
+            name: 'Old Genre'
         });
 
-        const result = await genreService.createGenre({
-            name: 'Fantasy',
-        });
+        dbMock.run.mockResolvedValueOnce({ changes: 1 });
 
-        expect(result).toEqual({
+        dbMock.get.mockResolvedValueOnce({
             id: 1,
-            name: 'Fantasy'
+            name: 'Updated Genre'
         });
 
-        dbMock.run.mockResolvedValue({ changes: 1 });
-
-        dbMock.get.mockResolvedValue({
-            id: 1,
-            name: 'Science Fiction'
-        });
-
-        const result1 = await genreService.updateGenre(1, {
-            name: 'Science Fiction',
+        const result = await genreService.updateGenre(1, {
+            name: 'Updated Genre'
         });
 
         expect(dbMock.run).toHaveBeenCalledWith(
             'UPDATE Genre SET name = ? WHERE id = ?',
-            ['Science Fiction', 1]
+            ['Updated Genre', 1]
         );
-
-        expect(result1).toEqual({
+        expect(result).toEqual({
             id: 1,
-            name: 'Science Fiction'
+            name: 'Updated Genre'
         });
     });
 
-    it('should delete a genre after its creation', async () => {
-        dbMock.run.mockResolvedValue({ lastID: 1 });
+    it('should fail to update non-existent genre', async () => {
+        dbMock.get.mockResolvedValueOnce(null);
+
+        await expect(genreService.updateGenre(999, {
+            name: 'Updated Genre'
+        })).rejects.toThrow('Genre not found.');
+    });
+
+    it('should delete a genre', async () => {
         dbMock.get.mockResolvedValue({
             id: 1,
-            name: 'Fantasy'
+            name: 'Genre to Delete'
         });
-
-        const result = await genreService.createGenre({
-            name: 'Fantasy',
-        });
-
-        expect(result).toEqual({
-            id: 1,
-            name: 'Fantasy'
-        });
-
-        dbMock.run.mockResolvedValue({ changes: 1 });
 
         await genreService.deleteGenre(1);
 
@@ -131,5 +136,41 @@ describe('GenreService', () => {
             'DELETE FROM Genre WHERE id = ?',
             [1]
         );
+    });
+
+    it('should fail to delete non-existent genre', async () => {
+        dbMock.get.mockResolvedValue(null);
+
+        await expect(genreService.deleteGenre(999))
+            .rejects.toThrow('Genre not found.');
+    });
+
+    it('should handle genre deletion with associated books', async () => {
+        dbMock.get.mockResolvedValue({
+            id: 1,
+            name: 'Genre with Books'
+        });
+
+        await genreService.deleteGenre(1);
+
+        expect(dbMock.run).toHaveBeenNthCalledWith(1,
+            'UPDATE Book SET genre = NULL WHERE genre = ?',
+            [1]
+        );
+
+        expect(dbMock.run).toHaveBeenNthCalledWith(2,
+            'DELETE FROM Genre WHERE id = ?',
+            [1]
+        );
+    });
+
+    it('should return null when creating genre fails', async () => {
+        dbMock.run.mockResolvedValue({ lastID: null });
+
+        const result = await genreService.createGenre({
+            name: 'Failed Genre'
+        });
+
+        expect(result).toBeNull();
     });
 });

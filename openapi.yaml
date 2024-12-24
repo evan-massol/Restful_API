@@ -1,0 +1,377 @@
+openapi: 3.1.0
+info:
+  title: Library API
+  description: API for managing a library (books, authors and genres)
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Books
+    description: Book management endpoints
+  - name: Authors
+    description: Author management endpoints
+  - name: Genres
+    description: Genre management endpoints
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid data
+        '409':
+          description: Username already exists
+        '500':
+          description: Server error
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login to get JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token
+        '401':
+          description: Invalid credentials
+        '500':
+          description: Server error
+
+  /books:
+    get:
+      tags:
+        - Books
+      summary: Get all books
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of books retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+        '500':
+          description: Server error
+
+    post:
+      tags:
+        - Books
+      summary: Create a new book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+      responses:
+        '201':
+          description: Book created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid data
+        '404':
+          description: Author or genre not found
+        '500':
+          description: Server error
+
+  /books/{isbn}:
+    parameters:
+      - name: isbn
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ISBN of the book
+    
+    get:
+      tags:
+        - Books
+      summary: Get a book by its ISBN
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+        '500':
+          description: Server error
+
+    put:
+      tags:
+        - Books
+      summary: Update a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookUpdate'
+      responses:
+        '200':
+          description: Book updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+        '500':
+          description: Server error
+
+    delete:
+      tags:
+        - Books
+      summary: Delete a book
+      responses:
+        '204':
+          description: Book deleted successfully
+        '404':
+          description: Book not found
+        '500':
+          description: Server error
+
+  /authors:
+    get:
+      tags:
+        - Authors
+      summary: Get all authors
+      responses:
+        '200':
+          description: List of authors retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Author'
+        '500':
+          description: Server error
+
+    post:
+      tags:
+        - Authors
+      summary: Create a new author
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorCreate'
+      responses:
+        '201':
+          description: Author created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          description: Invalid data
+        '500':
+          description: Server error
+
+  /authors/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID of the author
+    
+    get:
+      tags:
+        - Authors
+      summary: Get an author by ID
+      responses:
+        '200':
+          description: Author found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '404':
+          description: Author not found
+        '500':
+          description: Server error
+
+    put:
+      tags:
+        - Authors
+      summary: Update an author
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorUpdate'
+      responses:
+        '200':
+          description: Author updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '404':
+          description: Author not found
+        '500':
+          description: Server error
+
+    delete:
+      tags:
+        - Authors
+      summary: Delete an author
+      responses:
+        '204':
+          description: Author deleted successfully
+        '404':
+          description: Author not found
+        '500':
+          description: Server error
+
+  /genres:
+    get:
+      tags:
+        - Genres
+      summary: Get all genres
+      responses:
+        '200':
+          description: List of genres retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Genre'
+        '500':
+          description: Server error
+
+    post:
+      tags:
+        - Genres
+      summary: Create a new genre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenreCreate'
+      responses:
+        '201':
+          description: Genre created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+        '400':
+          description: Invalid data
+        '500':
+          description: Server error
+
+  /genres/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID of the genre
+    
+    get:
+      tags:
+        - Genres
+      summary: Get a genre by ID
+      responses:
+        '200':
+          description: Genre found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+        '404':
+          description: Genre not found
+        '500':
+          description: Server error
+
+    put:
+      tags:
+        - Genres
+      summary: Update a genre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenreUpdate'
+      responses:
+        '200':
+          description: Genre updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+        '404':
+          description: Genre not found
+        '500':
+          description: Server error
+
+    delete:
+      tags:
+        - Genres
+      summary: Delete a genre
+      responses:
+        '204':
+          description: Genre deleted successfully
+        '404':
+          description: Genre not found
+        '500':
+          description: Server error
+
+# Components
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

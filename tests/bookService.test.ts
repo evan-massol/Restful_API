@@ -9,24 +9,22 @@ jest.mock('../src/ts/database/database', () => ({
 
 describe('BookService', () => {
     let bookService: BookService;
-    let genreService: GenreService;
-    let authorService: AuthorService;
     let dbMock: any;
 
     beforeEach(async () => {
-        jest.clearAllMocks();
-
         dbMock = {
             run: jest.fn(),
             get: jest.fn(),
-            exec: jest.fn()
+            all: jest.fn()
         };
 
         (initDB as jest.Mock).mockResolvedValue(dbMock);
         bookService = new BookService(await initDB());
-        genreService = new GenreService(await initDB());
-        authorService = new AuthorService(await initDB());
     });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    })
 
     it('should create a book', async () => {
         dbMock.run.mockResolvedValueOnce({ lastID: 1 }); 
@@ -36,38 +34,18 @@ describe('BookService', () => {
             birthdate: '1990-01-01',
         });
     
-        const auth = await authorService.createAuthor({
-            name: 'Author Name',
-            birthdate: '1990-01-01',
-        });
-    
-        expect(dbMock.run).toHaveBeenCalledWith(
-            'INSERT INTO Author (name, birthdate) VALUES (?, ?)',
-            ['Author Name', '1990-01-01']
-        );
-    
-        dbMock.run.mockResolvedValueOnce({ lastID: 1 });
+        dbMock.run.mockResolvedValueOnce({ lastID: 2 });
         dbMock.get.mockResolvedValueOnce({
             id: 2,
             name: 'Genre Name',
         });
     
-        const genre = await genreService.createGenre({
-            name: 'Genre Name',
-        });
-    
-        expect(dbMock.run).toHaveBeenCalledWith(
-            'INSERT INTO Genre (name) VALUES (?)',
-            ['Genre Name']
-        );
-    
-        // Mock pour insérer un livre
-        dbMock.run.mockResolvedValueOnce({ lastID: 1 }); // Appel pour le livre
+        dbMock.run.mockResolvedValueOnce({ lastID: 3 });
         dbMock.get.mockResolvedValueOnce({
             isbn: 3,
             title: 'New Book Title',
-            author: auth,
-            genre: genre,
+            author: { id: 1, name: 'Author Name', birthdate: '1990-01-01' },
+            genre: { id: 2, name: 'Genre Name' },
             published_year: 2021,
         });
     
@@ -86,8 +64,8 @@ describe('BookService', () => {
         expect(result).toEqual({
             isbn: 3,
             title: 'New Book Title',
-            author: auth,
-            genre: genre,
+            author: { id: 1, name: 'Author Name', birthdate: '1990-01-01' },
+            genre: { id: 2, name: 'Genre Name' },
             published_year: 2021,
         });
     });
@@ -152,9 +130,9 @@ describe('BookService', () => {
 
         const result = await bookService.updateBook(1, {
             title: 'Updated Book Title',
-            author: { id: 1, name: 'Updated Author', birthdate: '1993-08-09' },
+            author: { id: 1, name: 'Updated Author', birthdate: '1990-01-01' },
             genre: { id: 1, name: 'Updated Genre' },
-            published_year: 2021
+            published_year: 2021,
         });
 
         expect(dbMock.run).toHaveBeenCalledWith(
@@ -188,5 +166,155 @@ describe('BookService', () => {
             'DELETE FROM Book WHERE isbn = ?',
             [1]
         );
+    });
+
+    it('should return null when getting a non-existent book', async () => {
+        dbMock.get.mockResolvedValue(null);
+
+        const result = await bookService.getBook(999);
+
+        expect(dbMock.get).toHaveBeenCalledWith(`
+                SELECT 
+                    b.isbn, 
+                    b.title, 
+                    a.name AS author, 
+                    g.name AS genre, 
+                    b.published_year 
+                FROM 
+                    Book b
+                LEFT JOIN 
+                    Author a ON b.author = a.id
+                LEFT JOIN 
+                    Genre g ON b.genre = g.id
+                WHERE 
+                    b.isbn = ?`,
+            [999]
+        );
+        expect(result).toBeNull();
+    });
+
+    it('should get all books', async () => {
+        const mockBooks = [
+            {
+                isbn: 1,
+                title: 'Book 1',
+                author: 'Author 1',
+                genre: 'Genre 1',
+                published_year: 2021
+            },
+            {
+                isbn: 2,
+                title: 'Book 2',
+                author: 'Author 2',
+                genre: 'Genre 2',
+                published_year: 2022
+            }
+        ];
+
+        dbMock.all.mockResolvedValue(mockBooks);
+
+        const result = await bookService.getAllBooks();
+
+        expect(dbMock.all).toHaveBeenCalledWith(`
+                SELECT 
+                    b.isbn, 
+                    b.title, 
+                    a.name AS author, 
+                    g.name AS genre, 
+                    b.published_year 
+                FROM 
+                    Book b
+                LEFT JOIN 
+                    Author a ON b.author = a.id
+                LEFT JOIN 
+                    Genre g ON b.genre = g.id
+            `);
+        expect(result).toEqual(mockBooks);
+    });
+
+    it('should fail to create a book with non-existent author', async () => {
+        dbMock.get.mockResolvedValueOnce(null);
+
+        await expect(bookService.createBook({
+            title: 'New Book Title',
+            author: { id: 999, name: 'Non-existent Author', birthdate: '1990-01-01' },
+            genre: { id: 1, name: 'Genre Name' },
+            published_year: 2021,
+        })).rejects.toThrow('Author with id 999 does not exist');
+    });
+
+    it('should fail to create a book with non-existent genre', async () => {
+        dbMock.get.mockResolvedValueOnce({
+            id: 1,
+            name: 'Author Name',
+            birthdate: '1990-01-01',
+        });
+        dbMock.get.mockResolvedValueOnce(null);
+
+        await expect(bookService.createBook({
+            title: 'New Book Title',
+            author: { id: 1, name: 'Author Name', birthdate: '1990-01-01' },
+            genre: { id: 999, name: 'Non-existent Genre' },
+            published_year: 2021,
+        })).rejects.toThrow('Genre with id 999 does not exist');
+    });
+
+    it('should delete a book', async () => {
+        dbMock.get.mockResolvedValueOnce({
+            isbn: 1,
+            title: 'Book to Delete',
+            author: 'Author Name',
+            genre: 'Genre Name',
+            published_year: 2021
+        });
+
+        await bookService.deleteBook(1);
+
+        expect(dbMock.run).toHaveBeenCalledWith(
+            'DELETE FROM Book WHERE isbn = ?',
+            [1]
+        );
+    });
+
+    it('should fail to delete a non-existent book', async () => {
+        dbMock.get.mockResolvedValue(null);
+
+        await expect(bookService.deleteBook(999))
+            .rejects.toThrow('Book not found.');
+    });
+
+    it('should handle partial book updates', async () => {
+        dbMock.get.mockResolvedValueOnce({
+            isbn: 1,
+            title: 'Old Title',
+            author: 'Old Author',
+            genre: 'Old Genre',
+            published_year: 2020
+        });
+
+        const partialUpdate = await bookService.updateBook(1, {
+            title: 'New Title'
+        });
+
+        expect(dbMock.run).toHaveBeenCalledWith(
+            'UPDATE Book SET title = ? WHERE isbn = ?',
+            ['New Title', 1]
+        );
+    });
+
+    it('should fail to update with invalid author', async () => {
+        dbMock.get.mockResolvedValueOnce({
+            isbn: 1,
+            title: 'Old Title',
+            author: 'Old Author',
+            genre: 'Old Genre',
+            published_year: 2020
+        });
+
+        dbMock.get.mockResolvedValueOnce(null);
+
+        await expect(bookService.updateBook(1, {
+            author: { id: 999, name: 'Non-existent Author', birthdate: '1990-01-01' }
+        })).rejects.toThrow('Author with id 999 does not exist');
     });
 }); 

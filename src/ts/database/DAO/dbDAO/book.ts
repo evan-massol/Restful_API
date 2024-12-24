@@ -61,21 +61,17 @@ export class BookDbDAO implements BookDAO {
 
     async createBook(bookData: Partial<Book>): Promise<Book | null> {
         try {
-            let author = await this.db.get('SELECT * FROM Author WHERE LOWER(name) = ?', [bookData.author!.name.trim().toLowerCase()]);
-            if (!author) {
-                const result = await this.db.run('INSERT INTO Author (name) VALUES (?)', [bookData.author]);
-                author = { id: result.lastID, name: bookData.author }; 
-            }
+            const author = await this.db.get('SELECT * FROM Author WHERE id = ?', [bookData.author?.id]);
+            if (!author) 
+                throw new Error(`Author with id ${bookData.author?.id} does not exist`);
 
-            let genre = await this.db.get('SELECT * FROM Genre WHERE LOWER(name) = ?', [bookData.genre?.name.trim().toLowerCase()]);
-            if (!genre) {
-                const result = await this.db.run('INSERT INTO Genre (name) VALUES (?)', [bookData.genre]);
-                genre = { id: result.lastID, name: bookData.genre };
-            }
+            const genre = await this.db.get('SELECT * FROM Genre WHERE id = ?', [bookData.genre?.id]);
+            if (!genre) 
+                throw new Error(`Genre with id ${bookData.genre?.id} does not exist`);
 
             const result = await this.db.run(
                 'INSERT INTO Book (title, author, genre, published_year) VALUES (?, ?, ?, ?)',
-                [bookData.title, author.id, genre.id, bookData.published_year]
+                [bookData.title, bookData.author?.id, bookData.genre?.id, bookData.published_year]
             );
 
             if (result.lastID) 
@@ -90,22 +86,49 @@ export class BookDbDAO implements BookDAO {
 
     async updateBook(isbn: number, bookData: Partial<Book>): Promise<Book | null> {
         try {
+            const existingBook = await this.getBook(isbn);
+            if (!existingBook) 
+                throw new Error('Book not found');
+
+            if (bookData.author?.id) {
+                const author = await this.db.get('SELECT * FROM Author WHERE id = ?', [bookData.author.id]);
+                if (!author) 
+                    throw new Error(`Author with id ${bookData.author.id} does not exist`);
+            }
+
+            if (bookData.genre?.id) {
+                const genre = await this.db.get('SELECT * FROM Genre WHERE id = ?', [bookData.genre.id]);
+                if (!genre) 
+                    throw new Error(`Genre with id ${bookData.genre.id} does not exist`);
+            }
+
             const updates: string[] = [];
             const params: any[] = [];
 
-            (Object.keys(bookData) as Array<keyof Partial<Book>>).forEach(key => {
-                if (bookData[key] !== undefined || bookData[key] !== null) {
-                    updates.push(`${key} = ?`);
-                    params.push(bookData[key]);
-                }
-            });
+            if (bookData.title) {
+                updates.push('title = ?');
+                params.push(bookData.title);
+            }
+            if (bookData.author?.id) {
+                updates.push('author = ?');
+                params.push(bookData.author.id);
+            }
+            if (bookData.genre?.id) {
+                updates.push('genre = ?');
+                params.push(bookData.genre.id);
+            }
+            if (bookData.published_year) {
+                updates.push('published_year = ?');
+                params.push(bookData.published_year);
+            }
 
             params.push(isbn);
 
-            await this.db.run(
-                `UPDATE Book SET ${updates.join(', ')} WHERE isbn = ?`,
-                params
-            );
+            if (updates.length > 0)
+                await this.db.run(
+                    `UPDATE Book SET ${updates.join(', ')} WHERE isbn = ?`,
+                    params
+                );
 
             return this.getBook(isbn);
         } 
