@@ -5,7 +5,10 @@ import { AuthorService } from './database/services/authorService.js';
 import { BookService } from './database/services/bookService.js';
 import { GenreService } from './database/services/genreService.js';
 import { UserService } from './database/services/userService.js';
+import { Author } from './database/models/author.js';
+import { validateId } from './utils/checkParams.js';
 import bcrypt from 'bcrypt';
+import { Book } from './database/models/book.js';
 
 // Setup routes
 export function setupRoutes(app: Application) {
@@ -15,7 +18,7 @@ export function setupRoutes(app: Application) {
     const userService = new UserService(app.locals.db);
 
     // Base route
-    app.get('/', authenticateToken, async (req: Request, res: Response) => {
+    app.get('/', async (req: Request, res: Response) => {
         res.send('Welcome to the Books API!');
     });
 
@@ -30,58 +33,146 @@ export function setupRoutes(app: Application) {
             res.status(500).json({ error: 'Error fetching books' });
         }
     });
+
+
     // Get a book by its ISBN
     app.get('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const book = await booksService.getBook(parseInt(req.params.id));
+            const validId = validateId(req.params.id, 'id');
+            const book = await booksService.getBook(validId);
             book ? res.json(book) : res.status(404).json({ error: 'Book not found' });
         } 
         catch (error) {
-            console.error('Error fetching the book: ', error);
-            res.status(500).json({ error: 'Couldn\'t get the specified book' });
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
     // Create a book
     app.post('/books', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const { title, author, genre, published_year } = req.body;
-            const book = await booksService.createBook({ title, author, genre, published_year });
-            book ? res.status(201).json(book) : res.status(404).json({error : 'Error in one or multiple fields when making the request in POST /books'});
+            const { title, authorId, genreId, publishedYear } = req.query;
+            
+            if (!title || !authorId || !genreId || !publishedYear) {
+                res.status(400).json({ error: 'Missing required parameters' });
+                return;
+            }
+
+            // Validate the parameters
+            const validAuthorId = validateId(authorId, 'authorId');
+            const validGenreId = validateId(genreId, 'genreId');
+            validateId(publishedYear, 'publishedYear');
+
+            const author = await authorService.getAuthor(validAuthorId);
+            if (!author) {
+                res.status(404).json({ error: 'Author not found' });
+                return;
+            }
+
+            const genre = await genreService.getGenre(validGenreId);
+            if (!genre) {
+                res.status(404).json({ error: 'Genre not found' });
+                return;
+            }
+
+            // Check if book already exists
+            const existingBooks = await booksService.getAllBooks();
+            const bookExists = existingBooks?.some(book => 
+                book.title === String(title) &&
+                book.author.id === author.id &&
+                book.genre.id === genre.id &&
+                book.published_year === Number(publishedYear)
+            );
+
+            if (bookExists) {
+                res.status(409).json({ error: 'The book with the specified parameters already exists' });
+                return;
+            }
+
+            const book = await booksService.createBook({
+                title: String(title),
+                author,
+                genre,
+                published_year: Number(publishedYear)
+            });
+
+            if (!book) {
+                res.status(400).json({ error: 'Failed to create the book' });
+                return;
+            }
+
+            res.status(201).json(book);
         } 
-        catch (error) {
-            console.error('Error creating a book: ', error);
-            res.status(500).json({ error: 'Error creating a book' });
+        catch (error : any) {
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
     // Update a book
     app.put('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const book = await booksService.updateBook(parseInt(req.params.id), req.body);
-            book ? res.json(book) : res.status(400).json({error : 'Error updating the book with id: ' + book!.isbn});
+            // Validate the parameters
+            const validId = validateId(req.params.id, 'id');
+            const { title, authorId, genreId, publishedYear } = req.query;
+
+            const updateData: Partial<Book> = {};
+            
+            if (title) 
+                updateData.title = String(title);
+            
+            if (authorId) {
+                const validAuthorId = validateId(authorId, 'authorId');
+                const author = await authorService.getAuthor(validAuthorId);
+                if (!author) {
+                    res.status(404).json({ error: 'Author not found' });
+                    return;
+                }
+                updateData.author = author;
+            }
+            
+            if (genreId) {
+                const validGenreId = validateId(genreId, 'genreId');
+                const genre = await genreService.getGenre(validGenreId);
+                if (!genre) {
+                    res.status(404).json({ error: 'Genre not found' });
+                    return;
+                }
+                updateData.genre = genre;
+            }
+            
+            if (publishedYear) {
+                validateId(publishedYear, 'publishedYear');
+                updateData.published_year = Number(publishedYear);
+            }
+
+            const book = await booksService.updateBook(validId, updateData);
+            if (!book) {
+                res.status(404).json({ error: 'Book not found' });
+                return;
+            }
+
+            res.json(book);
         } 
-        catch (error) {
-            console.error('Error updating a book: ', error);
-            res.status(500).json({ error: 'Error updating book' });
+        catch (error: any) {
+            if (error.message.includes('must be a positive integer')) 
+                res.status(400).json({ error: error.message });
+            else
+                res.status(500).json({ error: 'Internal server error' });
         }
     });
 
     // Delete a book
     app.delete('/books/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            await booksService.deleteBook(parseInt(req.params.id));
-            res.status(204).send({success : 'Book successfully deleted.'});
+            const validId = validateId(req.params.id, 'id');
+            await booksService.deleteBook(validId);
+            res.status(204).send({success : 'Book deleted successfully.'});
         } 
         catch (error : any) {
             if (error.message === 'Book not found.') 
                 res.status(404).json({ error: 'Book with the specified ISBN does not exist.' });
             else {
-                console.error('Error deleting book: ', error);
                 res.status(500).json({ error: 'Error deleting book' });
             }
-            console.error('Error deleting a book: ', error);
-            res.status(500).json({ error: 'Error deleting book' });
         }
     });
 
@@ -92,8 +183,7 @@ export function setupRoutes(app: Application) {
             const authors = await authorService.getAllAuthors();
             authors ? res.json(authors) : res.status(404).json({error : 'No authors found.'});
         } 
-        catch (error) {
-            console.error('Error fetching authors: ', error);
+        catch (error : any) {
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
@@ -101,56 +191,84 @@ export function setupRoutes(app: Application) {
     // Get an author by its ID
     app.get('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const author = await authorService.getAuthor(parseInt(req.params.id));
+            const validId = validateId(req.params.id, 'id');
+            const author = await authorService.getAuthor(validId);
             author ? res.json(author) : res.status(404).json({ error: 'Author not found' });
         } 
-        catch (error) {
-            console.error('Error fetching author: ', error);
-            res.status(500).json({ error: 'Internal Server Error' });
+        catch (error : any) {
+            if (error.message === 'Author not found.') 
+                res.status(404).json({ error: 'Author with the specified ID does not exist.' });
+            else 
+                res.status(500).json({ error: 'Internal Server Error' });
         }
     });
 
     // Create an author
     app.post('/authors', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const { name, birthdate } = req.body;
-            const author = await authorService.createAuthor({ name, birthdate });
+            const { name, birthdate } = req.query;
+            
+            if (!name || !birthdate) 
+                res.status(400).json({ error: 'Missing required parameters' });
+
+            const author = await authorService.createAuthor({ 
+                name: String(name), 
+                birthdate: String(birthdate)
+            });
+
             res.status(201).json(author);
         } 
         catch (error : any) {
-            console.error('Error creating an author: ', error);
-            if (error.message.includes('Invalid birthdate format')) 
+            if (error.message === 'Invalid birthdate format') {
                 res.status(400).json({ error: error.message });
-            else 
-                res.status(500).json({ error: 'Internal Server Error' });
+                return;
+            }
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
     // Update an author
     app.put('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const author = await authorService.updateAuthor(parseInt(req.params.id), req.body);
-            author ? res.json(author) : res.status(404).json({ error: 'Error updating the author with id: ' + author!.id});
+            const validId = validateId(req.params.id, 'id');
+            const { name, birthdate } = req.query;
+
+            const updatedData: Partial<Author> = {};
+            if (name) 
+                updatedData.name = String(name);
+
+            if (birthdate) 
+                updatedData.birthdate = String(birthdate);
+
+            const author = await authorService.updateAuthor(validId, updatedData);
+            if (!author) {
+                res.status(404).json({ error: 'Author not found' });
+                return;
+            }
+
+            res.json(author);
         } 
-        catch (error) {
-            console.error('Error updating an author: ', error);
-            res.status(500).json({ error: 'Internal Server Error' });
+        catch (error : any) {
+            if (error.message === 'Invalid birthdate format') {
+                res.status(400).json({ error: error.message });
+                return;
+            }
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
     // Delete an author
     app.delete('/authors/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            await authorService.deleteAuthor(parseInt(req.params.id));
+            const validId = validateId(req.params.id, 'id');
+            await authorService.deleteAuthor(validId);
             res.status(204).send({ success : 'Author successfully deleted.'});
-        } catch (error : any) {
+        } 
+        catch (error : any) {
             if (error.message === 'Author not found.') 
                 res.status(404).json({ error: 'Author with the specified ID does not exist.' });
-            else {
-                console.error('Error deleting author: ', error);
+            else
                 res.status(500).json({ error: 'Error deleting author' });
-            }
-            res.status(500).json({ error: 'Internal Server Error' });
         }
     });
 
@@ -162,7 +280,6 @@ export function setupRoutes(app: Application) {
             genres ? res.json(genres) : res.status(404).json({error : 'No genres found.'});
         } 
         catch (error) {
-            console.error('Error fetching genres:', error);
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
@@ -174,7 +291,6 @@ export function setupRoutes(app: Application) {
             genre ? res.json(genre) : res.status(404).json({ error: 'Genre not found' });
         } 
         catch (error) {
-            console.error('Error fetching genre:', error);
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
@@ -182,25 +298,47 @@ export function setupRoutes(app: Application) {
     // Create a genre
     app.post('/genres', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const { name } = req.body;
-            const genre = await genreService.createGenre({ name });
+            const { name } = req.query;
+            
+            if (!name) {
+                res.status(400).json({ error: 'Name is required' });
+                return;
+            }
+
+            const genre = await genreService.createGenre({ 
+                name: String(name)
+            });
+
             res.status(201).json(genre);
-        } 
-        catch (error) {
-            console.error('Error creating a genre: ', error);
-            res.status(500).json({ error: 'Internal Server Error' });
+        } catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
     // Update a genre
     app.put('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
-            const genre = await genreService.updateGenre(parseInt(req.params.id), req.body);
-            genre ? res.json(genre) : res.status(404).json({ error: 'Genre not found' });
+            const { name } = req.query;
+            const id = parseInt(req.params.id);
+
+            if (!name) {
+                res.status(400).json({ error: 'Name is required' });
+                return;
+            }
+
+            const genre = await genreService.updateGenre(id, { 
+                name: String(name)
+            });
+
+            if (!genre) {
+                res.status(404).json({ error: 'Genre not found' });
+                return;
+            }
+
+            res.json(genre);
         } 
         catch (error) {
-            console.error('Error updating a genre: ', error);
-            res.status(500).json({ error: 'Error updating genre' });
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
@@ -213,69 +351,64 @@ export function setupRoutes(app: Application) {
         catch (error : any) {
             if (error.message === 'Genre not found.') 
                 res.status(404).json({ error: 'Genre with the specified ID does not exist.' });
-            else {
-                console.error('Error deleting genre: ', error);
+            else
                 res.status(500).json({ error: 'Error deleting genre' });
-            }
         }
     });
 
     // Register route
-    app.post('/register', async (req: Request, res: Response) => {
+    app.post('/auth/register', async (req: Request, res: Response) => {
         try {
-            const { username, password } = req.body;
-            const user = await userService.createUser(username, password);
+            const { username, password } = req.query;
+            
+            if (!username || !password) {
+                res.status(400).json({ error: 'Username and password are required' });
+                return;
+            }
+
+            const user = await userService.createUser(String(username), String(password));
             res.status(201).json({ 
                 message: 'User created successfully',
                 user: { id: user?.id, username: user?.username }
             });
-        } catch (error: any) {
+        } 
+        catch (error: any) {
             if (error.message === 'Username already exists') 
                 res.status(409).json({ error: 'Username already exists' });
-
-            else if (error.message === 'Username and password are required')
-                res.status(400).json({ error: 'Username and password are required' });
-            
-            else {
-                console.error('Error in register:', error);
+            else
                 res.status(500).json({ error: 'Internal server error' });
-            }
         }
     });
 
     // Login route
-    app.post('/login', async (req: Request, res: Response) => {
+    app.post('/auth/login', async (req: Request, res: Response) => {
         try {
-            const { username, password } = req.body;
-            const user = await userService.getUserByUsername(username);
+            const { username, password } = req.query;
             
-            if (user && await bcrypt.compare(password, user.password)) {
+            if (!username || !password) {
+                res.status(400).json({ error: 'Username and password are required' });
+                return;
+            }
+
+            const user = await userService.getUserByUsername(String(username));
+            
+            if (user && await bcrypt.compare(String(password), user.password)) {
                 const token = await createToken({ 
                     id: user.id,
                     username: user.username 
                 });
                 res.json({ token });
-            }
+            } 
             else 
                 res.status(401).json({ error: 'Invalid credentials' });
         } 
         catch (error) {
-            console.error('Error during connection:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     });
 
-    // Login route if the user tries to access it with a GET request
-    app.get('/login', (req: Request, res: Response) => {
-        res.json({ 
-            message: 'Please login with a POST request if you already have a JWT token.',
-            example: 'An example using \'curl\' can be:\n',
-            ex: 'curl -X POST http://localhost:3000/login -H "Content-Type: application/json" -d \'{"username": "your_username", "password": "your_password"}\''
-        });
-    });
-
     // 404 route
-    app.use((req: Request, res: Response) => {
+    app.use((res: Response) => {
         res.status(404).json({ error: 'Route not found' });
     });
 }

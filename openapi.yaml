@@ -17,18 +17,33 @@ tags:
   - name: Genres
     description: Genre management endpoints
 
+# Global security configuration
+security:
+  - BearerAuth: []
+
 paths:
   /auth/register:
     post:
+      security: []
       tags:
         - Authentication
       summary: Register a new user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserCreate'
+      parameters:
+        - name: username  
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Username for the new account
+          example: "john_doe"
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+            format: password
+          description: Password for the new account
+          example: "password123"
       responses:
         '201':
           description: User created successfully
@@ -37,7 +52,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Invalid data
+          description: Invalid parameters
         '409':
           description: Username already exists
         '500':
@@ -45,15 +60,26 @@ paths:
 
   /auth/login:
     post:
+      security: []
       tags:
         - Authentication
       summary: Login to get JWT token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserLogin'
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Your username
+          example: "john_doe"
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+            format: password
+          description: Your password
+          example: "password123"
       responses:
         '200':
           description: Login successful
@@ -75,8 +101,6 @@ paths:
       tags:
         - Books
       summary: Get all books
-      security:
-        - BearerAuth: []
       responses:
         '200':
           description: List of books retrieved successfully
@@ -93,12 +117,42 @@ paths:
       tags:
         - Books
       summary: Create a new book
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BookCreate'
+      description: |
+        Create a new book using query parameters.
+        First get an author ID from /authors endpoint and a genre ID from /genres endpoint.
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Title of the book
+          example: "The Lord of the Rings"
+        - name: authorId
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            format: int32
+          description: ID of the existing author (must be a positive integer)
+          example: 1
+        - name: genreId
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            format: int32
+          description: ID of the existing genre (must be a positive integer)
+          example: 1
+        - name: publishedYear
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Publication year
+          example: 1954
       responses:
         '201':
           description: Book created successfully
@@ -107,7 +161,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Book'
         '400':
-          description: Invalid data
+          description: Invalid parameters
         '404':
           description: Author or genre not found
         '500':
@@ -142,12 +196,44 @@ paths:
       tags:
         - Books
       summary: Update a book
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BookUpdate'
+      parameters:
+        - name: isbn
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            format: int32
+          description: ISBN of the book to update
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: New title for the book
+          example: "Updated Title"
+        - name: authorId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            format: int32
+          description: ID of the new author
+          example: 1
+        - name: genreId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            format: int32
+          description: ID of the new genre
+          example: 1
+        - name: publishedYear
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: New publication year
+          example: 1954
       responses:
         '200':
           description: Book updated successfully
@@ -155,8 +241,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid parameters
         '404':
-          description: Book not found
+          description: Book not found or Author/Genre not found
         '500':
           description: Server error
 
@@ -193,12 +281,22 @@ paths:
       tags:
         - Authors
       summary: Create a new author
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuthorCreate'
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Name of the author
+          example: "J.R.R. Tolkien"
+        - name: birthdate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Author's birthdate (YYYY-MM-DD)
+          example: "1892-01-03"
       responses:
         '201':
           description: Author created successfully
@@ -207,7 +305,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Author'
         '400':
-          description: Invalid data
+          description: Invalid parameters
         '500':
           description: Server error
 
@@ -240,12 +338,23 @@ paths:
       tags:
         - Authors
       summary: Update an author
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuthorUpdate'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: New name for the author
+        - name: birthdate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: New birthdate (YYYY-MM-DD)
       responses:
         '200':
           description: Author updated successfully
@@ -291,12 +400,14 @@ paths:
       tags:
         - Genres
       summary: Create a new genre
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GenreCreate'
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Name of the genre
+          example: "Fantasy"
       responses:
         '201':
           description: Genre created successfully
@@ -305,7 +416,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Genre'
         '400':
-          description: Invalid data
+          description: Invalid parameters
         '500':
           description: Server error
 
@@ -338,12 +449,18 @@ paths:
       tags:
         - Genres
       summary: Update a genre
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GenreUpdate'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: New name for the genre
       responses:
         '200':
           description: Genre updated successfully
@@ -375,3 +492,61 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        password: { type: string }
+
+    UserCreate:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    UserLogin:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    Book:
+      type: object
+      properties:
+        isbn:
+          type: integer
+          description: Unique ISBN of the book
+        title:
+          type: string
+          description: Title of the book
+        author:
+          $ref: '#/components/schemas/Author'
+          description: Author of the book
+        genre:
+          $ref: '#/components/schemas/Genre'
+          description: Genre of the book
+        published_year:
+          type: integer
+          description: Publication year
+      required:
+        - isbn
+        - title
+        - author
+        - genre
+        - published_year
+
+    Author:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        birthdate: { type: string }
+
+    Genre:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
