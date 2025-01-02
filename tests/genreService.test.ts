@@ -69,24 +69,23 @@ describe('GenreService', () => {
     });
 
     it('should create a genre', async () => {
-        dbMock.run.mockResolvedValue({ lastID: 1 });
-        dbMock.get.mockResolvedValue({
-            id: 1,
+        const newGenre = {
             name: 'New Genre'
-        });
+        };
 
-        const result = await genreService.createGenre({
-            name: 'New Genre'
-        });
+        dbMock.get.mockResolvedValueOnce(undefined)
+                  .mockResolvedValueOnce({ id: 1, ...newGenre });
+
+        dbMock.run.mockResolvedValue({ lastID: 1 });
+
+        const result = await genreService.createGenre(newGenre);
 
         expect(dbMock.run).toHaveBeenCalledWith(
             'INSERT INTO Genre (name) VALUES (?)',
             ['New Genre']
         );
-        expect(result).toEqual({
-            id: 1,
-            name: 'New Genre'
-        });
+
+        expect(result).toEqual({ id: 1, ...newGenre });
     });
 
     it('should update a genre', async () => {

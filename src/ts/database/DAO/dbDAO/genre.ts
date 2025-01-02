@@ -41,7 +41,7 @@ export class GenreDbDAO implements GenreDAO {
             );
 
             // If the genre already exists
-            if (existingGenre !== undefined) 
+            if (existingGenre) 
                 return null;
 
             const result = await this.db.run(
