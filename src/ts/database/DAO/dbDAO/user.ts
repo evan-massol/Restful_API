@@ -44,4 +44,25 @@ export class UserDbDAO implements UserDAO {
     async getUserByUsername(username: string): Promise<User | null> {
         return await this.db.get('SELECT * FROM Users WHERE username = ?', [username]) || null;
     }
+
+    async getUserById(id: number): Promise<User | null> {
+        return await this.db.get('SELECT id, username FROM Users WHERE id = ?', [id]) || null;
+    }
+
+    async getAllUsers(): Promise<User[] | null> {
+        return await this.db.all('SELECT id, username FROM Users') || null;
+    }
+
+    async deleteUser(id: number): Promise<void> {
+        try {
+            // Check if the user exists
+            const user = await this.getUserById(id);
+            if (!user)
+                throw new Error('User not found');
+            await this.db.run('DELETE FROM Users WHERE id = ?', [id]);
+        } 
+        catch (error) {
+            throw error;
+        }
+    }
 }

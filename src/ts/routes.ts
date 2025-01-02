@@ -9,6 +9,7 @@ import { Author } from './database/models/author.js';
 import { validateId } from './utils/checkParams.js';
 import bcrypt from 'bcrypt';
 import { Book } from './database/models/book.js';
+import { isAdmin } from './utils/middleware.js';
 
 // Setup routes
 export function setupRoutes(app: Application) {
@@ -19,7 +20,7 @@ export function setupRoutes(app: Application) {
 
     // Base route
     app.get('/', async (req: Request, res: Response) => {
-        res.send('Welcome to the Books API!');
+        res.json('Welcome to the Books API!');
     });
 
     // Books routes
@@ -165,14 +166,13 @@ export function setupRoutes(app: Application) {
         try {
             const validId = validateId(req.params.id, 'id');
             await booksService.deleteBook(validId);
-            res.status(204).send({success : 'Book deleted successfully.'});
+            res.status(204).json({success : 'Book deleted successfully.'});
         } 
         catch (error : any) {
             if (error.message === 'Book not found.') 
                 res.status(404).json({ error: 'Book with the specified ISBN does not exist.' });
-            else {
+            else 
                 res.status(500).json({ error: 'Error deleting book' });
-            }
         }
     });
 
@@ -262,7 +262,7 @@ export function setupRoutes(app: Application) {
         try {
             const validId = validateId(req.params.id, 'id');
             await authorService.deleteAuthor(validId);
-            res.status(204).send({ success : 'Author successfully deleted.'});
+            res.status(204).json({ success : 'Author successfully deleted.'});
         } 
         catch (error : any) {
             if (error.message === 'Author not found.') 
@@ -310,7 +310,8 @@ export function setupRoutes(app: Application) {
             });
 
             res.status(201).json(genre);
-        } catch (error) {
+        } 
+        catch (error) {
             res.status(500).json({ error: 'Internal server error' });
         }
     });
@@ -346,13 +347,10 @@ export function setupRoutes(app: Application) {
     app.delete('/genres/:id', authenticateToken, async (req: Request, res: Response) => {
         try {
             await genreService.deleteGenre(parseInt(req.params.id));
-            res.status(204).send({ success: "Genre deleted successfully" });
+            res.status(204).json({ success: "Genre deleted successfully" });
         } 
-        catch (error : any) {
-            if (error.message === 'Genre not found.') 
-                res.status(404).json({ error: 'Genre with the specified ID does not exist.' });
-            else
-                res.status(500).json({ error: 'Error deleting genre' });
+        catch (error) {
+            res.status(500).json({ error: 'Error deleting genre' });
         }
     });
 
@@ -372,11 +370,8 @@ export function setupRoutes(app: Application) {
                 user: { id: user?.id, username: user?.username }
             });
         } 
-        catch (error: any) {
-            if (error.message === 'Username already exists') 
-                res.status(409).json({ error: 'Username already exists' });
-            else
-                res.status(500).json({ error: 'Internal server error' });
+        catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
@@ -404,6 +399,46 @@ export function setupRoutes(app: Application) {
         } 
         catch (error) {
             res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Admin routes
+    app.get('/users', authenticateToken, isAdmin, async (req: Request, res: Response) => {
+        try {
+            const users = await userService.getAllUsers();
+            users ? res.json(users) : res.status(404).json({ error: 'No users found' });
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    app.get('/users/:id', authenticateToken, isAdmin, async (req: Request, res: Response) => {
+        try {
+            const id = parseInt(req.params.id);
+            const user = await userService.getUserById(id);
+            user ? res.json(user) : res.status(404).json({ error: 'User not found' });
+        } 
+        catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    app.delete('/users/:id', authenticateToken, isAdmin, async (req: Request, res: Response) => {
+        try {
+            const id = parseInt(req.params.id);
+            if (req.user?.username === 'admin' && id === req.user.id) {
+                res.status(400).json({ error: 'Cannot delete an admin account' });
+                return;
+            }
+            await userService.deleteUser(id);
+            res.status(200).json({ success: 'User successfully deleted.' });
+        } 
+        catch (error : any) {
+            if (error.message === 'User not found')
+                res.status(404).json({ error: 'User with the specified ID does not exist.' });
+            else
+                res.status(500).json({ error: 'Internal server error' });
         }
     });
 

@@ -14,7 +14,19 @@ export class UserService {
         return this.userDbDAO.getUserByUsername(username);
     }
 
+    async getUserById(id: number): Promise<User | null> {
+        return this.userDbDAO.getUserById(id);
+    }
+
     async createUser(username : string, password : string): Promise<User | null> {
         return this.userDbDAO.createUser(username, password);
+    }
+
+    async getAllUsers(): Promise<User[] | null> {
+        return this.userDbDAO.getAllUsers();
+    }
+
+    async deleteUser(id: number): Promise<void> {
+        return this.userDbDAO.deleteUser(id);
     }
 } 

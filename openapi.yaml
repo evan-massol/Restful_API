@@ -16,6 +16,8 @@ tags:
     description: Author management endpoints
   - name: Genres
     description: Genre management endpoints
+  - name: Users
+    description: User management endpoints
 
 # Global security configuration
 security:
@@ -35,7 +37,7 @@ paths:
           schema:
             type: string
           description: Username for the new account
-          example: "john_doe"
+          example: "your_username"
         - name: password
           in: query
           required: true
@@ -43,7 +45,7 @@ paths:
             type: string
             format: password
           description: Password for the new account
-          example: "password123"
+          example: "your_password"
       responses:
         '201':
           description: User created successfully
@@ -71,7 +73,7 @@ paths:
           schema:
             type: string
           description: Your username
-          example: "john_doe"
+          example: "your_username"
         - name: password
           in: query
           required: true
@@ -79,7 +81,7 @@ paths:
             type: string
             format: password
           description: Your password
-          example: "password123"
+          example: "your_password"
       responses:
         '200':
           description: Login successful
@@ -134,7 +136,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-            format: int32
           description: ID of the existing author (must be a positive integer)
           example: 1
         - name: genreId
@@ -143,7 +144,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-            format: int32
           description: ID of the existing genre (must be a positive integer)
           example: 1
         - name: publishedYear
@@ -152,7 +152,7 @@ paths:
           schema:
             type: integer
           description: Publication year
-          example: 1954
+          example: 1965
       responses:
         '201':
           description: Book created successfully
@@ -203,7 +203,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-            format: int32
           description: ISBN of the book to update
         - name: title
           in: query
@@ -216,7 +215,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-            format: int32
           description: ID of the new author
           example: 1
         - name: genreId
@@ -224,7 +222,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-            format: int32
           description: ID of the new genre
           example: 1
         - name: publishedYear
@@ -485,6 +482,74 @@ paths:
         '500':
           description: Server error
 
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get all users (admin only)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '403':
+          description: Admin access required
+        '500':
+          description: Server error
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get a user by ID (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the user
+      responses:
+        '200':
+          description: User found
+        '403':
+          description: Admin access required
+        '404':
+          description: User not found
+        '500':
+          description: Server error
+
+    delete:
+      tags:
+        - Users
+      summary: Delete a user (admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the user to delete
+      responses:
+        '200':
+          description: User deleted successfully
+        '400':
+          description: Cannot delete admin account
+        '403':
+          description: Admin access required
+        '500':
+          description: Server error
+
 # Components
 components:
   securitySchemes:
@@ -512,6 +577,16 @@ components:
       properties:
         username: { type: string }
         password: { type: string }
+  
+    UserResponse:
+      type: object
+      properties:
+        id: 
+          type: integer
+          description: Unique ID of the user
+        username: 
+          type: string
+          description: Username of the user
 
     Book:
       type: object

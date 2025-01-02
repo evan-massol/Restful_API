@@ -35,16 +35,22 @@ export class GenreDbDAO implements GenreDAO {
     async createGenre(genre: Partial<Genre>): Promise<Genre | null> {
         try {
             if (!genre || !genre.name) return null;
-            let existingGenre = await this.db.get('SELECT * FROM Genre WHERE LOWER(name) = ?', [genre.name!.trim().toLowerCase()]);
-            if (existingGenre != undefined) {   
-                const result = await this.db.run(
-                    'INSERT INTO Genre (name) VALUES (?)',
-                    [genre.name]
-                );
+            const existingGenre = await this.db.get(
+                'SELECT * FROM Genre WHERE LOWER(name) = ?', 
+                [genre.name.trim().toLowerCase()]
+            );
 
-                if (result.lastID) 
-                    return this.getGenre(result.lastID);
-            }
+            // If the genre already exists
+            if (existingGenre !== undefined) 
+                return null;
+
+            const result = await this.db.run(
+                'INSERT INTO Genre (name) VALUES (?)',
+                [genre.name]
+            );
+
+            if (result.lastID) 
+                return this.getGenre(result.lastID);
             
             return null;
         } 

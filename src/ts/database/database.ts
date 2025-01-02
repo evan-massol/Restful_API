@@ -3,6 +3,7 @@ import { Database, open } from 'sqlite';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -104,6 +105,14 @@ async function seedDatabase(db: Database) {
             (3, 'The Hobbit', 3, 1, 1937),
             (4, 'Dune', 2, 2, 1965)
         `);
+
+        const adminPassword = 'admin123';
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);        
+
+        await db.run(`
+            INSERT OR IGNORE INTO Users (username, password) VALUES
+            ('admin', ?)
+        `, [hashedPassword]);
 
         console.log('Initial data seeded successfully!');
     } 

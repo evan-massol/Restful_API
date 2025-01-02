@@ -41,3 +41,11 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         return;
     }
 };
+
+export const isAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (req.user?.username !== 'admin') {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+    }
+    next();
+};
