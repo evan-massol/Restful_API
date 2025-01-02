@@ -32,16 +32,11 @@ async function startServer() {
     // Routes API
     setupRoutes(app);
 
-    // Middleware pour les routes non trouvées (doit être après toutes les autres routes)
-    app.use((req, res) => {
-      res.status(404).json({ error: 'Route not found' });
-    });
-
     // Start server
     const PORT = 3000;
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
-      console.log(`API documentation available at http://localhost:${PORT}/api-docs`);
+      console.log(`API documentation available at http://localhost:${PORT}/documentation`);
     });
   } 
   catch (error) {
