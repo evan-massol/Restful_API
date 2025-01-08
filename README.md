@@ -5,7 +5,7 @@ A RESTful API built with TypeScript for managing a library system, handling book
 ## Features
 
 - Complete CRUD operations for books
-- Author management with birth dates
+- Author management with birthdates
 - Genre management
 - JWT Authentication
 - OpenAPI/Swagger documentation
