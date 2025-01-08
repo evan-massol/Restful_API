@@ -29,21 +29,19 @@ A RESTful API built with TypeScript for managing a library system, handling book
 
 ## Installation
 
-1. Clone the repository or download the zip file.
+1. Navigate to the project's main directory.
 
-2. Navigate to the project directory.
-
-3. Install dependencies:
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-4. Build the project:
+3. Build the project:
 ```bash
 npm run build
 ```
 
-5. Start the server:
+4. Start the server:
 ```bash
 npm run start
 ```
@@ -119,7 +117,7 @@ src/
 
 - `npm run build` - Compile TypeScript project and generate the OpenAPI documentation
 - `npm run start` - Start the server
-- `npm run test` - Run unit tests
+- `npm run test`  - Run unit tests
 
 ## Database
 
@@ -142,7 +140,6 @@ Unit tests are written with Jest and cover:
 - Book management services
 - Author management services
 - Genre management services
-- Authentication and authorization
 
 To run tests:
 ```bash
