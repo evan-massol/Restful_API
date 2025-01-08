@@ -20,7 +20,7 @@ A RESTful API built with TypeScript for managing a library system, handling book
 - JWT (JSON Web Token)
 - bcrypt for password hashing
 - Swagger UI for documentation
-- Jest for unit testing
+- Jest for unit tests
 
 ## Prerequisites
 
