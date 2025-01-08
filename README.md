@@ -46,7 +46,7 @@ npm run build
 npm run start
 ```
 
-The server will start on http://localhost:3000
+The server will start on http://localhost:3000. To stop it, just use CTRL + C in the terminal.
 
 ## API Documentation
 
