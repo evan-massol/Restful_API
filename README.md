@@ -63,7 +63,7 @@ The API uses JWT authentication. To access protected endpoints:
 
 1. Create an account via the `/auth/register` endpoint
 2. Login via the `/auth/login` endpoint to get a JWT token
-3. Copy the token and paste it in the 'Authorize' button in the documentation, then click on 'Authorize'
+3. Copy the token and paste it in the 'Authorize' button in the documentation, then click on 'Authorize'. The token lasts for an hour.
 
 ## Endpoints Structure
 
