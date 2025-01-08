@@ -97,6 +97,8 @@ The API uses JWT authentication. To access protected endpoints:
 
 ## Project Structure
 
+The main files in the project are the following:
+
 ```
 src/
 ├── ts/
@@ -110,7 +112,8 @@ src/
 │   ├── routes.ts          # Route definitions
 │   └── swagger.ts         # Swagger configuration
 ├── tests/                 # Unit tests
-└── openapi.yaml           # OpenAPI documentation
+├── openapi.yaml           # OpenAPI documentation
+└── tsconfig.json          # TypeScript configuration file
 ```
 
 ## Available Scripts
